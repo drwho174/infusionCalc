@@ -22,3 +22,6 @@ Thumbs.db
 *.apk
 *.aab
 *.hprof
+
+# AgentTeams internal state
+.agent-teams/
