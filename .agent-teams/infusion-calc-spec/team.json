@@ -1,0 +1,626 @@
+{
+  "name": "infusion-calc-spec",
+  "id": "infusion-calc-spec",
+  "description": "Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.",
+  "captainSessionId": "session-bd49d57b-c214-498c-bf7c-a28b22fe6888",
+  "createdAt": 1794033482427,
+  "phase": "running",
+  "members": [
+    {
+      "id": "bbc7bd74-4cf2-4829-8f8b-69f2e4dfa649",
+      "name": "clinical",
+      "role": "Клинический исследователь (ОРИТ, инфузионная терапия)",
+      "provider": "deepseek-account",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1794033482427,
+      "status": "idle",
+      "runtimeSetup": {
+        "persona": "You are clinical, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: Клинический исследователь (ОРИТ, инфузионная терапия).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): clinical\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "e4a4661f-f151-4848-984c-3dbeede79b55",
+      "name": "architect",
+      "role": "Android-архитектор (Compose, Navigation 3, Room)",
+      "provider": "deepseek-account",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1794033482427,
+      "status": "removed",
+      "runtimeSetup": {
+        "persona": "You are architect, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: Android-архитектор (Compose, Navigation 3, Room).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): architect\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "a8b3eabf-5e88-4a3a-822f-9e21715817a1",
+      "name": "designer",
+      "role": "UX/UI-дизайнер (Material 3, доступность)",
+      "provider": "deepseek-account",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1794033482427,
+      "status": "removed",
+      "runtimeSetup": {
+        "persona": "You are designer, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: UX/UI-дизайнер (Material 3, доступность).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): designer\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "76c58333-9f03-4853-8570-0a91d04397c3",
+      "name": "editor",
+      "role": "Системный аналитик / технический писатель",
+      "provider": "deepseek-account",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1794033482427,
+      "status": "idle",
+      "runtimeSetup": {
+        "persona": "You are editor, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: Системный аналитик / технический писатель.\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): editor\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "",
+      "name": "reviewer",
+      "role": "Независимый ревьюер (медбезопасность и полнота ТЗ)",
+      "provider": "deepseek-account",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1794033482427,
+      "status": "removed"
+    },
+    {
+      "id": "2a0bfdee-2ce5-4e00-b0ca-73c7d3ae13cb",
+      "name": "designer2",
+      "role": "UX/UI-дизайнер (Material 3, доступность)",
+      "provider": "deepseek-account",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1794036370607,
+      "status": "idle",
+      "runtimeSetup": {
+        "persona": "You are designer2, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: UX/UI-дизайнер (Material 3, доступность).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): designer2\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "5d227b03-9e81-40e6-b0bc-c0a20a74c93c",
+      "name": "architect2",
+      "role": "Android-архитектор (Compose, Navigation 3, Room)",
+      "provider": "deepseek-account",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1794036370623,
+      "status": "idle",
+      "runtimeSetup": {
+        "persona": "You are architect2, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: Android-архитектор (Compose, Navigation 3, Room).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): architect2\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    },
+    {
+      "id": "9e3c4fc1-a072-4459-9aa5-4a6eda6b0327",
+      "name": "reviewer2",
+      "role": "Независимый ревьюер (медбезопасность и полнота ТЗ)",
+      "provider": "deepseek-account",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1794036370637,
+      "status": "idle",
+      "runtimeSetup": {
+        "persona": "You are reviewer2, a member of the multi-agent team \"infusion-calc-spec\" running inside DeepSeek Harness AgentTeams. The captain leads the team; you are a worker member with the role: Независимый ревьюер (медбезопасность и полнота ТЗ).\n\nTeam context:\n- Team id: infusion-calc-spec\n- Your name inside the team (use it as `from`/identity): reviewer2\n- Team goal: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room). Этап: исследование, ТЗ и дизайн-документ до написания кода. Палитра — из github.com/drwho174/Calc1.\n- Profile protocol: (none)\n- The team state lives under .agent-teams/infusion-calc-spec/ (team.json and inbox/*.jsonl). You may inspect these files read-only for diagnostics, but never edit them directly; use the agent_teams_* tools so JSON escaping and concurrent updates stay safe.\n- The captain and your teammates reach you through messages. Coordination arrives at your nearest model step. Apply it to your current attempt; a task assignment starts a separate turn.\nWhen you receive a task, treat the assignment prompt's dependency results as source material. Do not ignore them.\n\nWorking rules:\n1. When you receive a task assignment, call agent_teams_claim_task with the task id. Keep the returned attempt_id: include it in every agent_teams_update_task call for that execution attempt. Then mark the task in_progress.\n2. Work thoroughly with your available tools; do not cut corners.\n3. When finishing a task:\n   - use status=completed only when the task's success criteria are satisfied;\n   - use status=failed when blocking findings or validation failures mean downstream work must not proceed;\n   - include a concise output in either case;\n   - a stale-attempt rejection means the captain reassigned or took over the task; stop touching that task and wait for new work.\n   claimed cannot jump to completed. Mark in_progress first, then completed or failed.\n   Include attempt_id on every update. Then report once as described below and become idle.\n4. Send one short report with agent_teams_send_message (to=captain) when you complete a task or hit a blocker. Include source_task_id and source_attempt_id in task reports; a stale source rejection means stop, never relabel an old result with a new attempt. The captain is also your parent: this single message satisfies both reporting duties. Do not repeat it through the native send_message tool or send acknowledgments that add no new information.\n5. To ask a teammate something, use agent_teams_send_message with to=<teammate name>; the message lands in their mailbox and wakes them directly — teammates talk to each other without the captain in the loop. The same applies to the captain (to=captain).\n6. After your turn becomes idle, the shared task scheduler may assign your next ready task automatically. Never claim a second task while you still own unfinished work.\n7. If you already own an open attempt (claimed or in_progress) and receive mail, treat it as guidance for that same attempt_id unless the mail explicitly tells you to stop or fail. Do not claim a new task in that turn.\n8. Do not start a teammate's assigned task. Do not privately tell the next-stage member to start; the scheduler assigns unlocked work after you become idle.\n9. You are a worker: do not create or delete teams, reassign tasks, or add/remove members — that is the captain's job.\n10. Quality-gate kinds carry a contract (kind, objective, inScope, acceptance, verify). Stay inside inScope. Do not mark your own implementation as review pass. Review/requirements complete only with verdict=pass; needs_revision/reject must fail with findings. Mail is not a formal next review. Completed work must not be repeated to attach late evidence: call update_task on the original task with its attempt_id and acceptanceResults/commandsRun/evidence_note; supplements are append-only and cannot change its verdict.",
+        "toolFilter": {
+          "deny": [
+            "agent_teams_create",
+            "agent_teams_approve",
+            "agent_teams_edit_plan",
+            "agent_teams_add_member",
+            "agent_teams_remove_member",
+            "agent_teams_create_task",
+            "agent_teams_reassign_task",
+            "agent_teams_amend_task",
+            "agent_teams_resume",
+            "agent_teams_delete"
+          ]
+        }
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "profileSeedId": "research-clinical",
+      "subject": "Клиническое исследование: формулы инфузии, единицы дозирования, база препаратов, безопасность",
+      "description": "Проект: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3 stable 1.2.1, Room, без облака). Расчёт в обе стороны (доза→мл/ч и мл/ч→доза) в единой форме без лишних переключателей; единицы дозы — свойство препарата из инструкции, редактируются пользователем; вес вводится вручную при каждом расчёте; встроенный каталог 10–20 препаратов + пользовательские; усиленный режим безопасности; RU+EN. Этап: только документы, код не пишем.\n\nЗадача: собрать проверенную клиническую основу для ТЗ.\n1) Формулы: скорость мл/ч из дозы и концентрации для схем мкг/кг/мин, мкг/мин, мг/кг/ч, мг/ч, МЕ/ч и Ед/ч; обратный пересчёт; концентрация из разведения (масса препарата / объём растворителя); единицы и размерности; типичные ошибки (десятичная запятая, кг↔фунты, мкг↔мг).\n2) Как инструкции к препаратам задают дозировку и единицы; почему единицы — свойство препарата, а не глобальная настройка; как пользователь меняет их вручную.\n3) Структура базы: поля карточки (МНН, торговое, концентрация, разведение, единицы, диапазон доз, путь введения, заметки, источник и дата), требования к пользовательским препаратам.\n4) Безопасность: предупреждения о высоких дозах, подсказки диапазонов, правила округления, дисклеймер; практики снижения ошибок (ISMP, FDA, профильные руководства).\n5) Предложить стартовый каталог 10–20 препаратов ОРИТ с полями — только с указанием источника, без выдуманных значений.\n\nРезультат: docs/research-clinical.md — структурированный документ с формулами, таблицами, списком источников и явными допущениями. Не писать код.",
+      "status": "completed",
+      "assignee": "clinical",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1794033482427,
+      "updatedAt": 1794034018061,
+      "attemptId": "20973d2b-6da9-4b80-92af-b43831405e07",
+      "reassigning": false,
+      "output": "Сдан docs/research-clinical.md (676 строк, 52 КБ, 14 разделов + 2 приложения): клиническая основа для ТЗ калькулятора скорости инфузии.\n\nЧто внутри:\n1) Формулы. Единая модель единиц (amount × perKg × perTime) вместо ветвлений по препаратам: R[мл/ч] = D·60^(мин) ·W^(на кг) /C; обратный пересчёт; покрыты все схемы задачи (мкг/кг/мин, мкг/мин, мг/кг/ч, мг/ч, мг/мин, ЕД/ч/МЕ/ч, ЕД/кг/ч, ЕД/мин, мэкв/ч, г/ч); концентрация из разведения (3 варианта ввода, включая «ампула + объём»); размерностный контроль; правила округления; 15 пар «вход→выход» (T1–T15) как регрессионная база для тестов — все числа проверены арифметически и, где возможно, сверены с текстом инструкции.\n2) Единицы как свойство препарата: доказательная база из 5 инструкций (норэпинефрин — мкг/мин, вазопрессин — ЕД/мин и «1 мг = 530 ЕД», никардипин — мг/ч, амиодарон — мг/мин, гепарин — ЕД/ч и ЕД/кг/ч), 5 аргументов против глобальной настройки, контракт UX ручного изменения схемы с запретом автопересчёта.\n3) Структура БД: 6 сущностей, 16 полей карточки с обязательностью и валидацией, 9 требований к пользовательским препаратам, версионирование каталога, список «что не хранить».\n4) Безопасность: high-alert по FDA, soft/hard limits в логике DERS, 12 предупреждений с триггерами и двуязычными заготовками, правила округления, дисклеймер RU+EN, 6 практик снижения ошибок, 8 запретов.\n5) Стартовый каталог: 5 карточек, полностью сверенных по DailyMed SPL (с setid, датой редакции и цитатами), + 14 кандидатов без выдуманных чисел (единицы помечены как гипотеза, статус «требует сверки»), + процедура пополнения каталога.\n\nКлючевые находки для ТЗ: (а) индикация — часть ключа дозирования (вазопрессин 0,01 vs 0,03 ЕД/мин; амиодарон нагрузка vs поддержка); (б) шаг титрации вазопрессина 0,005 ЕД/мин требует 3 знаков после запятой; (в) амиодарон запрещает капельные системы (недодоз до 30 %) — расчёт только в мл/ч; (г) в инструкции к норэпинефрину обнаружена несогласованность: «0,25 мл/мин» соответствует ~32 мкг/мл, тогда как раздел разведения даёт 4 мкг/мл — считать только от явно подтверждённой концентрации; (д) 15 открытых вопросов (A1–A15) вынесены на клиническое ревью.\n\nОграничение метода: PDF-документы ISMP/ECRI, Joint Commission SEA #23 и PSNet на 2026-11-07 не открылись (application/pdf / 403 / редирект на ECRI), поэтому перечень high-alert для MVP собран по FDA, а правила обозначений доз помечены как подлежащие финальной сверке. Это зафиксировано в §6.1, §11 и A12.\n\nКода не писал: изменён только docs/research-clinical.md.",
+      "acceptanceResults": [
+        {
+          "criterion": "1) Формулы: скорость мл/ч из дозы и концентрации для схем мкг/кг/мин, мкг/мин, мг/кг/ч, мг/ч, МЕ/ч и Ед/ч; обратный пересчёт; концентрация из разведения; единицы и размерности; типичные ошибки",
+          "status": "passed",
+          "evidence": "§3.1–3.8: универсальная модель (amount × perKg × perTime), прямые/обратные формулы для всех перечисленных схем + мг/мин, ЕД/кг/ч, ЕД/мин, мэкв/ч, г/ч; формулы концентрации для 3 вариантов ввода; §3.5 размерностный контроль; §7 таблица E1–E14 (десятичная запятая, кг↔фунты, мкг↔мг, ЕД↔МЕ, key bounce, сила гепарина, капельные системы)"
+        },
+        {
+          "criterion": "2) Как инструкции задают дозировку и единицы; почему единицы — свойство препарата; как пользователь меняет вручную",
+          "status": "passed",
+          "evidence": "§4.1 таблица по 5 инструкциям с цитатами (мкг/мин, ЕД/мин, мг/ч, мг/мин, ЕД/ч и ЕД/кг/ч; 1 мг = 530 ЕД); §4.2 пять аргументов; §4.3 контракт UX из 6 шагов с запретом автопересчёта при смене схемы"
+        },
+        {
+          "criterion": "3) Структура базы: поля карточки (МНН, торговое, концентрация, разведение, единицы, диапазон доз, путь, заметки, источник и дата); требования к пользовательским препаратам",
+          "status": "passed",
+          "evidence": "§5.1 шесть сущностей; §5.2 таблица 16 полей с обязательностью и валидацией (source/sourceDate обязательны); §5.3 девять требований к пользовательским препаратам; §5.4 версионирование; §5.5 что не хранить"
+        },
+        {
+          "criterion": "4) Безопасность: предупреждения о высоких дозах, подсказки диапазонов, правила округления, дисклеймер; практики снижения ошибок (ISMP, FDA, руководства)",
+          "status": "passed",
+          "evidence": "§6.1 high-alert по FDA с указанием недоступных ISMP/ECRI источников; §6.2 soft/hard limits по модели DERS; §6.3 двенадцать предупреждений W1–W12 с триггерами и двуязычными текстами; §3.7 правила округления; §6.5 дисклеймер RU+EN; §6.6 практики двойной проверки, веса в кг, борьбы с привыканием к алертам; §6.7 восемь запретов"
+        },
+        {
+          "criterion": "5) Стартовый каталог 10–20 препаратов ОРИТ с полями, только с указанием источника, без выдуманных значений",
+          "status": "passed",
+          "evidence": "§8.1 пять полностью сверенных карточек (норэпинефрин SPL e375a0b9, вазопрессин b1147beb, никардипин 6fd1dafe, амиодарон 0c9ee15a, гепарин 8b030692) с датами редакций и цитатами; §8.2 четырнадцать кандидатов без числовых значений (единицы помечены как гипотеза, статус «требует сверки»); итого 19 препаратов; §8.3 процедура пополнения"
+        },
+        {
+          "criterion": "Результат: docs/research-clinical.md — структурированный документ с формулами, таблицами, списком источников и явными допущениями; код не писался",
+          "status": "passed",
+          "evidence": "Файл создан: 676 строк, 52 058 символов, 14 разделов + приложения A/B; §10 допущения A1–A15; §11 источники из 15 позиций с пометкой открыт/не открыт; инвентаризация заголовков и кросс-ссылок проверена скриптом; изменён только docs/research-clinical.md"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "profileSeedId": "research-stack",
+      "subject": "Исследование Android-стека: Navigation 3, Compose, Room, архитектура, тесты",
+      "description": "Проект: Android-приложение «Калькулятор скорости инфузии» (Kotlin, Jetpack Compose, Navigation 3, Room, без облака). Расчёт в обе стороны в единой форме; единицы дозы — свойство препарата; вес вводится вручную; встроенный каталог + пользовательские препараты; усиленный режим безопасности; RU+EN. Этап: только документы, код не пишем.\n\nЗадача: обосновать стек и архитектуру на актуальных данных (ноябрь 2026).\n1) Проверить версии по официальным источникам: Kotlin, AGP/Gradle, Compose BOM, Material 3, Navigation 3 (стабильная 1.2.1; оценить, нужна ли 1.3.0-alpha04), Room + KSP, kotlinx.serialization, DataStore, Hilt vs ручной DI, minSdk/targetSdk, JVM toolchain. Не выдумывать версии.\n2) Best practices: одноактивити + NavDisplay с типизированными ключами, Result API, back stack, edge-to-edge, темы Material 3, локализация RU/EN, доступность, тесты (unit, Compose UI, screenshot), CI.\n3) Слои data/domain/ui, модель препарата, репозиторий, где живёт вычислительный движок и как тестировать (чистые функции, точность, BigDecimal vs Double).\n\nРезультат: docs/research-stack.md с версиями, ссылками на источники и обоснованием каждого выбора. Не писать код приложения.",
+      "status": "completed",
+      "assignee": "architect",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1794033482427,
+      "updatedAt": 1794034144919,
+      "attemptId": "a9037d1f-006f-4fb9-b76e-8bab8614b463",
+      "reassigning": false,
+      "output": "Создан docs/research-stack.md (528 строк): стек с проверенными по первоисточникам версиями (Kotlin 2.4.21, AGP 9.5.1, Gradle 9.8.2, Compose BOM 2026.09.00 → UI 1.12.1 + M3 1.4.0, Navigation 3 1.2.1, Room3 3.0.3 + комнатный плагин, KSP 2.3.13, kotlinx.serialization 1.12.0, DataStore 1.3.0, комплект тестов), обоснование каждого выбора, архитектура (:app + :core-engine, слои data/domain/ui, модель препарата с doseUnit как свойством препарата, репозитории, ручной DI), место и контракты вычислительного движка, решение BigDecimal vs Double с прогоном на JVM, политика округления, стратегия тестов (unit/Compose+Robolectric/Roborazzi/instrumented/a11y), CI, риски и точки пересмотра. Код приложения не писался. Ключевые находки: AGP 9 включает built-in Kotlin (плагин kotlin-android не нужен); Compose UI 1.12.1 требует compileSdk 37, Nav3 требует minSdk 24; на Google Maven уже стабилен Room 3.0.3 (androidx.room3) — выбран вместо Room 2.8.5; 1.3.0-alpha04 отличается от 1.2.1 только TitleMetadataKey/UrlMetadataKey/PredictivePopGesture — альфа не нужна.",
+      "changedPaths": [
+        "docs/research-stack.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Версии Kotlin, AGP/Gradle, Compose BOM, M3, Navigation 3, Room+KSP, kotlinx.serialization, DataStore, Hilt, minSdk/targetSdk, JVM toolchain проверены по официальным источникам и не выдуманы",
+          "status": "passed",
+          "evidence": "Google Maven/Maven Central/Gradle services + AAR-метаданные: Kotlin 2.4.21, AGP 9.5.1 (Gradle ≥9.6, JDK 17, API ≤37), Gradle 9.8.2 (current 9.9.0 от 2026-11-06), BOM 2026.09.00 (UI 1.12.1 minCompileSdk 37/minAGP 9.1.0, M3 1.4.0), Nav3 1.2.1 (minSdk 24) и 1.3.0-alpha04, room3 3.0.3 / room 2.8.5, KSP 2.3.13, serialization 1.12.0, DataStore 1.3.0, Hilt 2.60.1; раздел 2 и 9 документа"
+        },
+        {
+          "criterion": "Оценена необходимость 1.3.0-alpha04 против стабильной 1.2.1",
+          "status": "passed",
+          "evidence": "Диф classes.jar: runtime 59 vs 59 классов (без отличий), ui 28 vs 31 (добавлены TitleMetadataKey, UrlMetadataKey, PredictivePopGestureKt) — не требуется для MVP; раздел 3.4"
+        },
+        {
+          "criterion": "Best practices: одноактивити + NavDisplay с типизированными ключами, Result API, back stack, edge-to-edge, M3-темы, локализация RU/EN, доступность, тесты, CI",
+          "status": "passed",
+          "evidence": "Раздел 4: декораторы, ResultEventBus/ResultEffect (подтверждены классами в AAR 1.2.1), DialogScene, edge-to-edge при targetSdk 36, палитра Calc1 и отключение dynamic color, generateLocaleConfig + AppCompatDelegate-развилка, a11y-проверки через ui-test-junit4-accessibility, пирамида тестов и два CI-job'а"
+        },
+        {
+          "criterion": "Слои data/domain/ui, модель препарата, репозиторий, место вычислительного движка и способ тестирования (чистые функции, точность, BigDecimal vs Double)",
+          "status": "passed",
+          "evidence": "Разделы 5-6: :core-engine + :app, таблица полей препарата с doseUnit/doseBasis, репозитории и ручной DI, формулы обоих направлений, прогон на JVM (0.1+0.2=0.30000000000000004, 10×0.1=0.9999999999999999, BD 2.675→2.68), политика округления и набор тестов (golden/property/round-trip)"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "mcp__maven__check_multiple_dependencies / get_latest_version / check_version_exists / verify_coordinates по 40+ координатам",
+          "status": "passed",
+          "evidence": "получены фактические последние версии и стабильность из Google Maven, Maven Central, Gradle Plugin Portal; проверено существование navigation3 1.3.0-alpha04, room 3.0.0-alpha01 (нет), room3 3.0.3 (есть)"
+        },
+        {
+          "command": "android docs search/fetch (kb://android/...): agp-9-5-0-release-notes, kotlin-support, migrate-to-built-in-kotlin, target-sdk, migration-2-to-3, compose-screenshot-testing-with-testsuites, app-languages, system-bars, accessibility/testing",
+          "status": "passed",
+          "evidence": "AGP 9.5: Gradle ≥9.6.0, JDK ≥17, API ≤37; Play: target API 36+ с 31.08.2026; Room 3 — только KSP, coroutines-first, драйверы; built-in Kotlin с AGP 9.0"
+        },
+        {
+          "command": "WebFetch services.gradle.org/versions/current, github api google/ksp, google/dagger, raw Calc1 (libs.versions.toml, app/build.gradle.kts, gradle.properties, wrapper)",
+          "status": "passed",
+          "evidence": "Gradle 9.9.0 (2026-11-06); KSP 2.3.13 (2026-10-30), AGP ≥8.12.0 с 2.3.12; Hilt 2.60.1; Calc1: AGP 9.4.1, Gradle 9.8.2, compileSdk 37/minSdk 24/targetSdk 36, Java 17, без kotlin-android"
+        },
+        {
+          "command": "Разбор AAR (AndroidManifest + aar-metadata + classes.jar) для compose-ui 1.12.1, material3 1.4.0, navigation3 1.2.1 и 1.3.0-alpha04, room3-runtime 3.0.3",
+          "status": "passed",
+          "evidence": "minSdk: compose 23, M3 21, nav3 24, room3 23; minCompileSdk: compose 37, nav3 36, room3 34; minAGP: compose 9.1.0, nav3 8.9.1, room3 8.1.1; наличие result-пакета и Scenes в 1.2.1"
+        },
+        {
+          "command": "java NumDemo.java (JBR JDK 25) — численный эксперимент Double vs BigDecimal",
+          "status": "passed",
+          "evidence": "0.1+0.2=0.30000000000000004; 0.1+0.2==0.3 false; 10×0.1=0.9999999999999999; 1e20+1==1e20 true; BD 2.675 setScale(2,HALF_UP)=2.68; BD 1e20+1 точен"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "profileSeedId": "research-ux",
+      "subject": "UX-исследование и черновик дизайн-документа: паттерны, палитра Calc1, доступность",
+      "description": "Проект: Android-приложение «Калькулятор скорости инфузии» на Jetpack Compose и Material 3. Расчёт в обе стороны (доза→мл/ч и мл/ч→доза) в единой форме без лишних переключателей; единицы дозы — свойство препарата; вес вводится вручную; встроенный каталог + пользовательские препараты; усиленный режим безопасности (предупреждения о высоких дозах, подсказки диапазонов); RU+EN; аудитория — врачи ОРИТ, медсёстры, студенты. Этап: только документы, код не пишем.\n\nЗадача: UX-основа и черновик дизайн-документа.\n1) Паттерны калькуляторов: ввод числа с десятичной запятой, live-пересчёт, единая форма для двух направлений, состояния ошибок и предупреждений, выбор препарата, добавление/редактирование/удаление, поиск, пустые состояния.\n2) Палитра из Calc1 (app/src/main/java/com/drwho174/calc1/ui/theme/Color.kt): light primary #006B5B, primaryContainer #79F8DC, secondary #006491, background #FAFDFA; dark primary #59DBC1, primaryContainer #005144, secondary #89CEFF, background #191C1B; error #BA1A1A / #FFB4AB; signal green #2E7D32, red #C62828, yellow #FDD835. Dynamic color выключен. Проверить контраст по WCAG 2.2 AA, тач-цели 48dp, крупные цифры результата.\n3) Описать экраны и потоки (список препаратов, калькулятор, карточка препарата, добавление/редактирование, настройки/о приложении, дисклеймер), состояния, переходы, локализацию RU/EN.\n\nРезультат: docs/research-ux.md — черновик с картой экранов, состояниями и предложенной структурой будущего docs/DESIGN.md. Не писать код.",
+      "status": "completed",
+      "assignee": "designer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1794033482427,
+      "updatedAt": 1794034172553,
+      "attemptId": "94e92d70-10e7-4e80-8359-3f16a1fac577",
+      "reassigning": false,
+      "output": "Создан docs/research-ux.md (1286 строк, 87 КБ) — UX-исследование и черновик дизайн-документа; код не писался.\n\nСостав:\n- Аудитория и контекст (врач ОРИТ / медсестра у постели в перчатках / студент) с UX-импликациями.\n- Референсы (MDCalc/QxMD/Medscape, Calc1 по исходникам) — что берём и что отвергаем с обоснованием.\n- 14 ключевых UX-решений (U-1…U-14): единая форма с двусторонним пересчётом и «последнее изменённое поле — источник»; live-пересчёт без кнопки; ввод с запятой/точкой и нормализацией по blur; единицы как свойство препарата (без одноразового override); ручной вес, сбрасываемый при смене препарата; результат — липкая карточка СВЕРХУ (нижняя панель конфликтует с IME); «≈» для вычисленных и округлённых значений; каталог read-only + «Мои препараты»; удаление с подтверждением и undo; двуязычный поиск по МНН/торговому; безопасность без выключателей; офлайн-приватность.\n- Карта экранов S-0…S-7 (дисклеймер первого запуска, список/поиск/фильтры, калькулятор, карточка, форма, настройки, о приложении, дисклеймер), ASCII-схема потоков, таблица переходов и правил back, навигационная модель (без нижней навигации и deep links).\n- Для каждого экрана: структура, состояния (default/loading/empty/error/warning/disabled/success), тексты; сводная матрица состояний (раздел 10); крайние случаи E-1…E-20.\n- 14 компонентов (C-1…C-14) с анатомией, состояниями и доступностью; правила ввода N-1…N-14; правила живого пересчёта; таксономия ошибок и матрица сообщений RU/EN (12 условий); предложение по округлению с требованием не терять точность при обратном пересчёте.\n\nПалитра и доступность — проверено, не на глаз:\n- Перенесена полная палитра Calc1 (Color.kt, ветка master, проверено 2026-11-07), включая tertiary/inverse-роли и сигнальные цвета; dynamic color выключен.\n- Все пары посчитаны по формуле WCAG 2.2: штатная схема проходит AA в обеих темах (напр. primary/background 6,30:1 светлая и 10,08:1 тёмная; onPrimaryContainer/primaryContainer 13,32:1 и 7,20:1).\n- Найдено 3 реальные проблемы и закрыто предложениями: (1) outlineVariant 1,66:1 / 1,84:1 — только декоративные разделители, границы — outline (4,39/5,42); (2) signalGreen/signalRed в тёмной теме как текст — 3,35 и 3,05 (<4,5), предложены токены #81C784 8,53:1 и #FFB4AB 10,11:1; (3) signalYellow как текст на светлом — 1,36:1, только заливка с чёрным текстом (15,05:1).\n- В палитре Calc1 отсутствуют surfaceContainer*/surfaceDim/Bright — Compose подставит базовые M3-значения (сиреневый оттенок). Предложены значения с измеренным контрастом (13,36…17,17:1 светлая, 9,60…14,90:1 тёмная).\n- Тач-цели 48dp ≥ требования WCAG 2.2 SC 2.5.8 (24×24) и SC 2.5.5 AAA (44×44); крупный результат displaySmall 36sp с табличными цифрами; чек-лист WCAG 2.2 AA по 22 критериям, сценарии TalkBack, live-region с задержкой 600 мс, масштаб шрифта 200 %, требования к IME и reflow 320dp.\n- Локализация: правила RU/EN, форматы чисел (запятая/точка, без группировки тысяч, локаль приложения а не системы), таблица единиц с озвучиванием, 75+ ключей строк, примеры переполнения.\n\nДля t5: раздел 16 — предложенная структура docs/DESIGN.md (16 разделов, включая матрицу трассировки и чек-лист приёмки).\nДля t4: 12 открытых вопросов OQ-1…OQ-12 с владельцами — критичные: разовый пересчёт концентрации в калькуляторе (OQ-3), правка единиц внутри калькулятора (OQ-2), критический порог дозы (OQ-6), округление по типам препаратов (OQ-8), юридическая формулировка дисклеймера (OQ-11).\nВалидация файла: таблицы markdown целостны (0 расхождений колонок), кавычки сбалансированы (401/401), маркеров-заглушек нет."
+    },
+    {
+      "id": "t4",
+      "subject": "ТЗ приложения: требования, сценарии, модель данных, правила расчёта",
+      "description": "Свести research-документы (t1, t2, t3) в полное ТЗ приложения.\n\nВводные заказчика (обязательны к соблюдению):\n- Android, Kotlin, Jetpack Compose, Navigation 3 (стабильная 1.2.1), Room, без облака.\n- Расчёт в обе стороны — «доза → мл/ч» и «мл/ч → доза» — в единой форме без лишних переключателей, с автоматическим пересчётом.\n- Единицы дозы — свойство препарата из инструкции; пользователь может менять их вручную; при добавлении нового препарата пользователь сам задаёт способ выражения скорости инфузии.\n- Вес вводится вручную при каждом расчёте; профилей пациентов нет.\n- Встроенный каталог 10–20 препаратов ОРИТ + пользовательские препараты.\n- Усиленный режим безопасности: предупреждения о высоких дозах, подсказки диапазонов, валидация ввода и округления.\n- Аудитория: врачи ОРИТ, медсёстры, студенты.\n- Локализация RU + EN. Палитра — из репозитория Calc1 (бирюза, dynamic color выключен).\n\nСтруктура ТЗ: цели и границы; аудитория и сценарии; функциональные требования с ID и приоритетами must/should/could; модель данных препарата; правила расчёта и округления; валидация, предупреждения, дисклеймер; нефункциональные требования (производительность, офлайн, приватность, доступность, локализация); критерии приёмки; открытые вопросы.\n\nРезультат: docs/SPEC.md. Не писать код.",
+      "status": "completed",
+      "assignee": "editor",
+      "dependencies": [
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "attempt": 1,
+      "createdAt": 1794033488711,
+      "updatedAt": 1794034763646,
+      "kind": "requirements",
+      "round": 1,
+      "objective": "Написать ТЗ Android-приложения «Калькулятор скорости инфузии», которое полностью покрывает согласованные с заказчиком решения, опирается на research-документы и пригодно для оценки объёма разработки.",
+      "inScope": [
+        "docs/SPEC.md"
+      ],
+      "acceptance": [
+        "ТЗ описывает оба направления расчёта в единой форме без отдельных переключателей режима, с автоматическим пересчётом.",
+        "Единицы дозы описаны как свойство препарата из инструкции с ручным редактированием; при добавлении препарата пользователь задаёт схему единиц.",
+        "Описаны формула концентрации (масса/объём), правила округления, валидация ввода и предупреждения о высоких дозах с подсказками диапазонов.",
+        "Описаны модель препарата и пользовательские препараты, хранение в Room, офлайн, без облака.",
+        "Учтены RU+EN, доступность (WCAG AA, тач-цели), дисклеймер и три группы аудитории.",
+        "Каждое требование имеет ID и приоритет must/should/could; есть критерии приёмки и раздел открытых вопросов.",
+        "Все клинические утверждения опираются на docs/research-clinical.md и источники; выдуманных доз и препаратов нет."
+      ],
+      "deliverables": [
+        "docs/SPEC.md"
+      ],
+      "attemptId": "5b1faa9c-3614-4335-af85-c326ba4641be",
+      "reassigning": false,
+      "output": "Сдан docs/SPEC.md — техническое задание Android-приложения «Калькулятор скорости инфузии» (1395 строк, ~197 КБ, 13 разделов + 5 приложений + история). Код не писался, изменён только этот файл.\n\nСостав ТЗ ровно по заданной структуре: §1 цели и границы (15 in-scope, 14 out-of-scope с обоснованием), §2 аудитория и 12 сценариев SC-1…SC-12, §4 функциональные требования (103 + 5 требований к данным), §5 модель данных препарата (7 сущностей Room 3, 21 поле Drug + 14 полей DoseScheme, 10 инвариантов, версионирование), §6 правила расчёта и округления (формулы, 12 схем единиц, 15 golden-кейсов T1–T15, политика округления, коды отказа), §7 валидация/предупреждения/дисклеймер (16 правил ввода, 23 сообщения RU/EN, нормативный текст дисклеймера), §8 нефункциональные требования (70), §9 критерии приёмки (24) + реестр тестов + сценарии TalkBack, §10 трассировка к research-документам, §11 открытые вопросы (20, с владельцем, влиянием и значением по умолчанию), §12 риски (12), приложения A–E (каталог препаратов, охват UI, реестр строк, клинические первоисточники, объём работ для оценки).\n\nИтого 178 требований (108 FR + 70 NFR), у каждого — ID, приоритет (must 145 / should 28 / could 5), ссылка на проверку и источник. Проверено скриптом: 178 уникальных ID, 0 требований без приоритета, 0 ссылок на несуществующие ID, 0 битых markdown-таблиц (74 таблицы).\n\nКлючевые решения, снимающие противоречия research-документов (D-1…D-15): (1) направление расчёта — состояние формы, последнее изменённое поле = источник, переключателей нет (отменяет «переключатель направления» из t2 §5.4 — вводная заказчика и U-1); (2) единица дозы — свойство схемы, плоское doseUnit из t2 §5.2 расширено до сущности DoseScheme с индикацией (иначе не покрыть вазопрессин 0,01 vs 0,03 ЕД/мин и амиодарон нагрузка/поддержка); (3) правка каталожного препарата = пользовательская редакция с derivedFromId и «сбросить к источнику» (совмещает t1 §4.3 и t3 U-9); (4) четыре уровня пределов: hint → soft → critical (не блокируют) → hard/технический (блокируют), модальных окон нет; (5) округление HALF_UP один раз на выводе с пересчётом фактической дозы; (6) капли/мин и dropFactor удалены из модели; (7) журнала расчётов нет (приватность); (8) BigDecimal + TEXT, Double/Float запрещены в :core-engine.\n\nКаталог: 5 полностью верифицированных карточек (норэпинефрин, вазопрессин, никардипин, амиодарон, гепарин) с SPL setid, редакциями и цитатами + 14 кандидатов без единого выдуманного числа (статус «требует сверки», расчёт заблокирован); релизный гейт — ≥10 верифицированных карточек.\n\nОстаётся ревью (t7) и 20 открытых вопросов; значения по умолчанию для всех ⚠️-параметров зафиксированы в конфигурации, поэтому реализация не блокируется.",
+      "verdict": "pass",
+      "changedPaths": [
+        "docs/SPEC.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "ТЗ описывает оба направления расчёта в единой форме без отдельных переключателей режима, с автоматическим пересчётом.",
+          "status": "passed",
+          "evidence": "§4.2 FR-CALC-01…05 + D-1: два одновременно активных поля, источник = последнее изменённое, живой пересчёт без кнопки, «≈» и подпись источника; переключатель направления внесён в запреты (§1.6 ⛔-12, ACC-13); сценарии SC-1…SC-3 и ACC-1/ACC-2 фиксируют проверку."
+        },
+        {
+          "criterion": "Единицы дозы описаны как свойство препарата из инструкции с ручным редактированием; при добавлении препарата пользователь задаёт схему единиц.",
+          "status": "passed",
+          "evidence": "§4.3 FR-UNIT-01…12 (единица — свойство DoseScheme, в калькуляторе не редактируется; ручное изменение только через препарат/редакцию с подтверждением; запрет автопересчёта при смене схемы; обязательный выбор схемы при создании с закрытым списком), §5.3 DATA-SCHEME-01…14, сценарии SC-6/SC-7, ACC-3/ACC-4."
+        },
+        {
+          "criterion": "Описаны формула концентрации (масса/объём), правила округления, валидация ввода и предупреждения о высоких дозах с подсказками диапазонов.",
+          "status": "passed",
+          "evidence": "§6.2 CALC-03 (C = m/V, три режима ввода) и CALC-04…08; §6.5 CALC-20…32 (HALF_UP, один раз на выводе, шаг насоса, правила отображения, round-trip); §7.1 VAL-01…16; §4.9 FR-SAFE-01…14 (hint → soft → critical → hard, §6.7) и §7.3 MSG-01…23 с текстами RU/EN; ACC-5…ACC-8."
+        },
+        {
+          "criterion": "Описаны модель препарата и пользовательские препараты, хранение в Room, офлайн, без облака.",
+          "status": "passed",
+          "evidence": "§5 целиком (Room 3.0.3 + BundledSQLiteDriver, 7 сущностей, 21 поле Drug, 14 полей DoseScheme, 10 инвариантов, миграции); §4.8 FR-CUSTOM-01…13; §8.3 NFR-OFF-01…04 (нет разрешения INTERNET, полная работа с первого запуска); §8.4 NFR-PRIV-01…06 и D-11 (нет журнала/облака/аналитики); ACC-10, ACC-16, ACC-17."
+        },
+        {
+          "criterion": "Учтены RU+EN, доступность (WCAG AA, тач-цели), дисклеймер и три группы аудитории.",
+          "status": "passed",
+          "evidence": "§2 персоны (врач ОРИТ / медсестра / студент) с требованиями-следствиями и 12 сценариями; §8.5 NFR-A11Y-01…10 (WCAG 2.2 AA, 48×48 dp, fontScale 200 %, TalkBack-сценарии §9.4) с измеренными контрастами палитры Calc1; §8.6 NFR-I18N-01…09; §4.10 FR-DISC-01…05 и нормативный текст дисклеймера §7.4 (RU+EN); ACC-15, ACC-18, ACC-20."
+        },
+        {
+          "criterion": "Каждое требование имеет ID и приоритет must/should/could; есть критерии приёмки и раздел открытых вопросов.",
+          "status": "passed",
+          "evidence": "178 требований (108 FR в §4 + §5.6, 70 NFR в §8), все с ID, приоритетом и ссылкой на проверку: must 145 / should 28 / could 5, 0 без приоритета (проверено скриптом). §9 — 24 критерия приёмки (ACC-1…ACC-24) + реестр из 16 групп обязательных тестов; §11 — 20 открытых вопросов с владельцем, влиянием и значением по умолчанию; §0.2 задаёт правила приоритетов."
+        },
+        {
+          "criterion": "Все клинические утверждения опираются на docs/research-clinical.md и источники; выдуманных доз и препаратов нет.",
+          "status": "passed",
+          "evidence": "Приложение A: 5 карточек только с числами из открытых SPL (setid, дата редакции, цитаты — §A.1) + 14 кандидатов без числовых доз; Приложение D — таблица «утверждение → раздел research-clinical → первоисточник» для всех клинических чисел, включая FDA high-alert, амиодарон (капельные −30 %), вазопрессин «1 мг = 530 ЕД», норэпинефрин E14; §6.4 golden T1–T15 помечены по достоверности (✅ / расчётно / арифметика); собственные значения ТЗ ограничены техническими порогами и явно помечены ⚠️ с OQ (вес, K_crit, порог округления, шаг насоса)."
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "subject": "Дизайн-документ: экраны, состояния, токены, доступность, локализация",
+      "description": "Довести черновик docs/research-ux.md до финального дизайн-документа, согласованного с ТЗ (docs/SPEC.md).\n\nСостав:\n1) Карта экранов и потоков: список препаратов/поиск, калькулятор (единая форма для доза→мл/ч и мл/ч→доза), карточка препарата, добавление и редактирование, настройки, о приложении, дисклеймер.\n2) Для каждого экрана — назначение, структура, компоненты Material 3, поведение при вводе (десятичная запятая, live-пересчёт), состояния: default, loading, empty, error, warning (высокая доза), disabled, success.\n3) Токены: цветовая схема из Calc1 (light/dark), типографика, отступы, радиусы, размеры тач-целей 48dp; крупный результат расчёта; сигнальные цвета для предупреждений.\n4) Правила доступности: контраст WCAG 2.2 AA, contentDescription, порядок фокуса, поддержка масштаба шрифта, TalkBack; edge-to-edge.\n5) Локализация RU/EN: список ключей строк и правила форматов чисел/единиц.\n6) Крайние случаи: нулевая концентрация, неизвестный вес, очень большие значения, длинные названия, удаление препарата.\n\nРезультат: docs/DESIGN.md. Не писать код.",
+      "status": "completed",
+      "dependencies": [
+        "t1",
+        "t3",
+        "t4"
+      ],
+      "attempt": 5,
+      "createdAt": 1794033495200,
+      "updatedAt": 1794038076777,
+      "kind": "work",
+      "deliverables": [
+        "docs/DESIGN.md"
+      ],
+      "reassigning": false,
+      "assignee": "captain",
+      "attemptId": "b0af1f75-968c-4e1c-b82d-1447a87e59ca",
+      "output": "docs/DESIGN.md дописан капитаном (субагенты нестабильно держали длинную генерацию). Итог — 13 разделов + шапка: принципы (DS-1…DS-10), аудитория, IA и карта экранов S-0…S-7 + overlay-сцены S-2a…S-2d, детальные экраны со состояниями и переходами, правила ввода N-1…N-14 и живого пересчёта, компоненты C-1…C-14, токены (палитра Calc1 один-в-один + роли surfaceContainer* + сигнальные пары с измеренным контрастом), доступность WCAG 2.2 AA, локализация RU/EN, крайние случаи E-1…E-20, трассировка, критерии приёмки, открытые вопросы. Опирается на docs/SPEC.md и docs/research-ux.md; расхождений с ТЗ не внесено, спорные места вынесены в §13."
+    },
+    {
+      "id": "t6",
+      "subject": "Технический план: архитектура, схема Room, движок расчётов, тесты, этапы",
+      "description": "На основе docs/research-stack.md и docs/SPEC.md составить технический план реализации (без кода).\n\nСостав:\n1) Структура проекта и слои: data/domain/ui, пакеты, единый модуль или модульность.\n2) Версии зависимостей из research-stack (Kotlin, AGP, Compose BOM, Material 3, Navigation 3 1.2.1, Room + KSP, kotlinx.serialization, DataStore, DI), minSdk/targetSdk, JVM toolchain.\n3) Navigation 3: типизированные ключи, NavDisplay, сцены, Result API, back stack, восстановление состояния.\n4) Room: схема таблиц, типы полей, индексы, миграции, сидирование встроенного каталога, тесты миграций.\n5) Движок расчётов: чистые функции, единицы, точность и округление, обработка ошибок; план unit-тестов с эталонными примерами (включая обратный пересчёт и граничные значения).\n6) Локализация RU/EN и доступность на уровне реализации.\n7) Тестовая стратегия: unit, Compose UI, screenshot, ручные сценарии.\n8) Этапы: MVP → полировка → релиз; риски и способы их снижения; что осознанно не входит.\n\nРезультат: docs/TECH-PLAN.md. Не писать код приложения.",
+      "status": "completed",
+      "dependencies": [
+        "t2",
+        "t4"
+      ],
+      "attempt": 5,
+      "createdAt": 1794033495212,
+      "updatedAt": 1794038244629,
+      "kind": "work",
+      "deliverables": [
+        "docs/TECH-PLAN.md"
+      ],
+      "reassigning": false,
+      "assignee": "captain",
+      "attemptId": "55c0b905-a928-483b-b692-594431c2fecd",
+      "output": "docs/TECH-PLAN.md написан капитаном (субагенты нестабильно держали длинную генерацию). 11 разделов: стек с зафиксированными версиями (Kotlin 2.4.21, AGP 9.5.1, Gradle 9.8.2, Compose BOM 2026.09.00, Navigation 3 1.2.1, Room 3.0.3, KSP 2.3.13, DataStore 1.3.0; compileSdk 37 / targetSdk 36 / minSdk 24), модули :core-engine + :app, модель данных Room по SPEC §5 (Drug 21 поле, DoseScheme 14 полей + ConcentrationPreset/Limit/Source/Favorite), движок BigDecimal с формулами и round-trip, навигация Nav3 (ключи, декораторы, Result API, overlay-сцены), UI, локализация, DI, тесты+CI, этапы M0–M5 и риски. Согласовано со SPEC: модель DoseScheme и единая форма без переключателя направления (D-1); расхождения research-stack §5.2/§5.4 зафиксированы и перекрыты SPEC."
+    },
+    {
+      "id": "t7",
+      "subject": "Комплексная проверка комплекта: ТЗ, дизайн-документ, техплан",
+      "description": "Независимо проверить комплект документов перед передачей заказчику: docs/SPEC.md, docs/DESIGN.md, docs/TECH-PLAN.md и research-документы.\n\nПроверить:\n1) Полноту: все требования ТЗ имеют дизайн и техническую реализацию; матрица трассировки.\n2) Непротиворечивость: единицы, формулы, округление, модель данных, навигация, локализация.\n3) Клиническую корректность: формулы и дозы сверены с docs/research-clinical.md и источниками; нет выдуманных данных.\n4) Соответствие вводным заказчика (см. ТЗ).\n5) Выполнимость: версии стека, Navigation 3, Room, тесты, оценка этапов.\n6) Риски: медицинские, UX, технические, правовые (дисклеймер, Play Policy).\n\nРезультат: docs/REVIEW.md — findings с id, severity, problem, requiredFix, file и итоговый вердикт. Если есть блокирующие замечания — задача завершается как failed с findings; если только незначительные — completed с вердиктом pass и списком рекомендаций.",
+      "status": "cancelled",
+      "dependencies": [
+        "t4",
+        "t5",
+        "t6"
+      ],
+      "attempt": 0,
+      "createdAt": 1794033500272,
+      "updatedAt": 1794037727143,
+      "kind": "verification",
+      "objective": "Независимо проверить комплект документов на полноту, непротиворечивость, клиническую безопасность и выполнимость, оформить findings и итоговый вердикт.",
+      "acceptance": [
+        "Построена матрица трассировки: каждое требование ТЗ покрыто дизайном и техпланом либо явно отмечено как непокрытое.",
+        "Проверено отсутствие противоречий между ТЗ, дизайн-документом и техпланом (единицы, формулы, хранение, локализация, безопасность).",
+        "Клинические утверждения сверены с docs/research-clinical.md и источниками; выдуманных доз и препаратов нет.",
+        "Решения сверены с вводными заказчика: оба направления в единой форме, единицы из инструкций с ручным изменением, ручной вес, Room без облака, RU+EN, палитра Calc1.",
+        "Findings оформлены с id, severity (low/medium/high/blocker), problem, requiredFix, file.",
+        "В docs/REVIEW.md есть итоговый вердикт pass/fail с обоснованием и списком блокирующих замечаний."
+      ],
+      "deliverables": [
+        "docs/REVIEW.md"
+      ],
+      "reassigning": false,
+      "assignee": "reviewer2",
+      "output": "Stopped from the captain chat."
+    },
+    {
+      "id": "t8",
+      "subject": "Комплексная проверка комплекта: ТЗ, дизайн-документ, техплан",
+      "description": "Независимо проверить комплект документов перед передачей заказчику.\n\nФайлы: docs/SPEC.md (ТЗ, нормативен), docs/DESIGN.md (дизайн-документ), docs/TECH-PLAN.md (техплан), docs/research-clinical.md, docs/research-stack.md, docs/research-ux.md.\n\nКонтекст: два документа (DESIGN.md, TECH-PLAN.md) досозданы капитаном из-за инфраструктурных сбоев субагентов; проверь их наравне с остальными, обратив внимание на согласованность со SPEC (особенно: модель DoseScheme vs старый §5.2 research-stack, единая форма без переключателя направления D-1, палитра и сигнальные цвета).\n\nПроверить:\n1) Полноту — матрица трассировки требований ТЗ на дизайн и техплан.\n2) Непротиворечивость — единицы, формулы, округление, модель данных, навигация, локализация.\n3) Клиническую корректность — формулы и дозы сверены с research-clinical.md и источниками; нет выдуманных данных.\n4) Соответствие вводным заказчика (оба направления без переключателей, единицы из инструкций с ручным изменением, ручной вес, Room без облака, RU+EN, палитра Calc1).\n5) Выполнимость — версии стека, Navigation 3, Room 3, тесты, этапы.\n6) Риски — медицинские, UX, технические, правовые (дисклеймер, Play Policy, отсутствие INTERNET).\n\nРезультат: docs/REVIEW.md — findings с id, severity, problem, requiredFix, file и итоговый вердикт. Если есть блокирующие замечания — задача failed с findings; если только незначительные — completed с вердиктом pass и списком рекомендаций.",
+      "status": "completed",
+      "assignee": "reviewer2",
+      "dependencies": [
+        "t4",
+        "t5",
+        "t6"
+      ],
+      "attempt": 1,
+      "createdAt": 1794038394716,
+      "updatedAt": 1794038834306,
+      "kind": "verification",
+      "objective": "Независимо проверить комплект документов (docs/SPEC.md, docs/DESIGN.md, docs/TECH-PLAN.md и research-документы) на полноту, непротиворечивость, клиническую безопасность и выполнимость, оформить findings и итоговый вердикт.",
+      "acceptance": [
+        "Построена матрица трассировки: каждое требование ТЗ покрыто дизайном и техпланом либо явно отмечено как непокрытое.",
+        "Проверено отсутствие противоречий между ТЗ, дизайн-документом и техпланом (единицы, формулы, модель данных, хранение, локализация, безопасность, направление расчёта).",
+        "Клинические утверждения сверены с docs/research-clinical.md и источниками; выдуманных доз и препаратов нет.",
+        "Решения сверены с вводными заказчика: оба направления в единой форме, единицы из инструкций с ручным изменением, ручной вес, Room без облака, RU+EN, палитра Calc1.",
+        "Findings оформлены с id, severity (low/medium/high/blocker), problem, requiredFix, file.",
+        "В docs/REVIEW.md есть итоговый вердикт pass/fail с обоснованием и списком блокирующих замечаний."
+      ],
+      "deliverables": [
+        "docs/REVIEW.md"
+      ],
+      "attemptId": "7fdbf803-b4c0-47ce-b5e5-2d421517381e",
+      "reassigning": false,
+      "output": "Создан docs/REVIEW.md — комплексное независимое ревью всех шести документов. Итоговый вердикт: pass (блокирующих замечаний нет). Проверены полнота (матрица трассировки групп требований SPEC→DESIGN/TECH-PLAN — все группы покрыты), непротиворечивость (единицы/формулы/округление/модель данных/навигация/локализация/безопасность/направление расчёта), клиническая корректность (T1–T15 и 6 доп. кейсов пересчитаны вручную; 5 верифицированных карточек сверены с research-clinical §8.1/§11 без расхождений, кандидаты без выдуманных чисел), вводные заказчика (все 7 выполнены), выполнимость (стек/верcии/Nav3/Room3/тесты/этапы) и риски. Ключевые точки из задания сняты корректно: DoseScheme vs плоская doseUnit (SPEC D-3 + TECH-PLAN §0), единая форма без переключателя (D-1 во всех документах), палитра и сигнальные пары побайтно совпадают в research-ux/DESIGN/SPEC. Выявлено 9 неблокирующих замечаний (1 medium F2, 8 low), оформленных с id/severity/problem/requiredFix/file; блокирующих нет.",
+      "verdict": "pass",
+      "findings": [
+        {
+          "id": "F1",
+          "severity": "low",
+          "problem": "Инверсия подписи в SC-3 шаг 3: «Поле скорости становится источником… подпись меняется на «пересчитано из дозы»» — при источнике-скорости вычисляемое поле (доза) должно подписываться «пересчитано из скорости» (FR-CALC-02).",
+          "requiredFix": "Исправить на «пересчитано из скорости».",
+          "file": "docs/SPEC.md"
+        },
+        {
+          "id": "F2",
+          "severity": "medium",
+          "problem": "DESIGN §9.3 «Схемы единиц дозы (для формы препарата)» содержит ~7 из 12 обязательных схем (SPEC FR-UNIT-03/CALC-07); опущены мг/мин (амиодарон), ЕД/кг/ч (гепарин), ЕД/мин (вазопрессин), мэкв/ч (KCl), г/ч (MgSO4). Реализатор по §9.3 может не добавить их в закрытый список S-4.",
+          "requiredFix": "Привести §9.3 к полному списку 12 схем из SPEC.",
+          "file": "docs/DESIGN.md"
+        },
+        {
+          "id": "F3",
+          "severity": "low",
+          "problem": "Несогласованные числовые пределы: вес ≤500 кг (VAL-13/N-10) против 0,3–300 кг жёсткого технического предела (FR-WEIGHT-05/FR-SAFE-10); скорость ≤10000 мл/ч (VAL-13/N-10) против >999,9 блокировки (CALC-13/FR-SAFE-10). DESIGN E-4 трактует 9999,9 как отображаемое, противореча техническому пределу 999,9.",
+          "requiredFix": "Привести лимит поля к техническому пределу (вес ≤300 кг, скорость ≤999,9 мл/ч) или явно описать двухуровневость.",
+          "file": "docs/SPEC.md"
+        },
+        {
+          "id": "F4",
+          "severity": "low",
+          "problem": "Опечатка версии: «JUnit4 13.2» вместо «JUnit 4.13.2» (research-stack §2).",
+          "requiredFix": "Исправить на 4.13.2.",
+          "file": "docs/TECH-PLAN.md"
+        },
+        {
+          "id": "F5",
+          "severity": "low",
+          "problem": "FR-SET-02 (must) требует in-app выбор «системный/русский/English» без перезапуска, но NFR-STACK-09 (could) и §1.3 п.10 фиксируют «системный + per-app (Android 13+), без AppCompatActivity». DESIGN/TECH-PLAN разрешают это как «per-app на 13+, на API<33 системный», но в тексте FR-SET-02 оговорка отсутствует.",
+          "requiredFix": "Дополнить FR-SET-02 оговоркой «на API<33 язык следует системному; на Android 13+ — per-app language».",
+          "file": "docs/SPEC.md"
+        },
+        {
+          "id": "F6",
+          "severity": "low",
+          "problem": "FR-SAFE-08 ссылается на «W1–W12» (research-clinical §6.3), но §7.3 использует MSG-01…23 без явного маппинга W→MSG; W8 (амиодарон ЦВК) и W12 (экран сверки) уходят в FR-CARD-03/FR-SAFE-07, W11 (смешанные разделители) перекрыт D-10.",
+          "requiredFix": "Добавить строку маппинга W1–W12 → MSG/FR в §7.3 или §10.",
+          "file": "docs/SPEC.md"
+        },
+        {
+          "id": "F7",
+          "severity": "low",
+          "problem": "CALC-32 (суточная доза ÷24 → часовая, гепарин T10/T11) отражён в DESIGN (S-2d) и SPEC, но не в спецификации движка TECH-PLAN §4.",
+          "requiredFix": "Добавить нормализацию «суточная доза ÷24» в TECH-PLAN §4.",
+          "file": "docs/TECH-PLAN.md"
+        },
+        {
+          "id": "F8",
+          "severity": "low",
+          "problem": "DESIGN §9.2 «Ед/ч (units/h)» использует строчное «Ед», тогда как SPEC и Приложение C используют «ЕД/ч», а сам §9.2 запрещает одиночное «Ед».",
+          "requiredFix": "Унифицировать на «ЕД/ч».",
+          "file": "docs/DESIGN.md"
+        },
+        {
+          "id": "F9",
+          "severity": "low",
+          "problem": "В SC-1 для норэпинефрина (схема мкг/мин, абсолютная) пользователь вводит вес 70, хотя по FR-WEIGHT-03 вес для абсолютной схемы не требуется; может сбить авторов UI-тестов.",
+          "requiredFix": "Уточнить в SC-1, что вес для мкг/мин необязателен, или взять пример со схемой «на кг».",
+          "file": "docs/SPEC.md"
+        }
+      ],
+      "changedPaths": [
+        "docs/REVIEW.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Построена матрица трассировки: каждое требование ТЗ покрыто дизайном и техпланом либо явно отмечено как непокрытое.",
+          "status": "passed",
+          "evidence": "REVIEW.md §2 — матрица по 27 группам требований SPEC (FR-NAV/CALC/UNIT/CONC/WEIGHT/CAT/CARD/CUSTOM/SAFE/DISC/SET/DATA, CALC/VAL/MSG, NFR-PERF/REL/QUAL/OFF/PRIV/A11Y/I18N/STACK/UI/MAINT) → DESIGN §3–10 и TECH-PLAN §1–11; непокрытых групп нет, 5 групп отмечены как «покрыто с замечанием» (F2/F3/F5/F6/F7)."
+        },
+        {
+          "criterion": "Проверено отсутствие противоречий между ТЗ, дизайн-документом и техпланом (единицы, формулы, модель данных, хранение, локализация, безопасность, направление расчёта).",
+          "status": "passed",
+          "evidence": "REVIEW.md §3 — 9 осей сверены: 12 схем единиц (amountUnit {MCG,MG,G,UNIT,IU,MEQ}), формулы R=D·k·W^b/C и обратная, BigDecimal/HALF_UP/один раз на выводе, Drug(21)+DoseScheme(14)+5 сущностей, Room3+DataStore без сети, S-0…S-7+overlay, RU/EN по языку приложения, 4 уровня пределов, D-1 без переключателя — совпадают во всех трёх документах."
+        },
+        {
+          "criterion": "Клинические утверждения сверены с docs/research-clinical.md и источниками; выдуманных доз и препаратов нет.",
+          "status": "passed",
+          "evidence": "REVIEW.md §4 — T1–T15 и 6 доп. кейсов пересчитаны вручную (все совпадают); 5 верифицированных карточек сверены с research-clinical §8.1/§11 (SPL setid/даты/дозы/концентрации) без расхождений; 14 кандидатов без чисел со статусом «требует сверки»."
+        },
+        {
+          "criterion": "Решения сверены с вводными заказчика: оба направления в единой форме, единицы из инструкций с ручным изменением, ручной вес, Room без облака, RU+EN, палитра Calc1.",
+          "status": "passed",
+          "evidence": "REVIEW.md §5 — таблица 7 вводных → D-1/FR-CALC, D-2/D-4/FR-UNIT, D-6/FR-WEIGHT, NFR-OFF/PRIV/D-11, §8.6, NFR-UI-01…05/DESIGN §7; все выполнены, каталог 10–20 с гейтом ≥10 (RISK-6)."
+        },
+        {
+          "criterion": "Findings оформлены с id, severity (low/medium/high/blocker), problem, requiredFix, file.",
+          "status": "passed",
+          "evidence": "REVIEW.md §10 — 9 findings (F1–F9) с id/severity (1 medium, 8 low)/problem/requiredFix/file; блокирующих (high/blocker) нет."
+        },
+        {
+          "criterion": "В docs/REVIEW.md есть итоговый вердикт pass/fail с обоснованием и списком блокирующих замечаний.",
+          "status": "passed",
+          "evidence": "REVIEW.md §9 и §11 — «Вердикт: pass», обоснование по 6 осям проверки, список блокирующих замечаний: «отсутствует», перечень рекомендаций F1–F9."
+        }
+      ],
+      "commandsRun": []
+    }
+  ],
+  "taskSeq": 8,
+  "approvedAt": 1794033637382,
+  "halted": false
+}

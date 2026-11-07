@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Infusion calculator</string>
+
+    <!-- common -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="loading">Loading…</string>
+    <string name="settings">Settings</string>
+    <string name="add">Add</string>
+    <string name="add_drug">Add drug</string>
+    <string name="offline_note">Works offline. Data stays on your device.</string>
+
+    <!-- disclaimer -->
+    <string name="disclaimer_title">Infusion rate calculator</string>
+    <string name="disclaimer_body">Calculates infusion rate from dose and dose from rate. Concentration is selected from the drug\'s presets. A reference tool; it does not replace a physician\'s order and verification.</string>
+    <string name="disclaimer_accept">Accept and continue</string>
+
+    <!-- weight -->
+    <string name="weight_title">Patient weight</string>
+    <string name="weight_subtitle">Enter the weight once — it applies to all drugs</string>
+    <string name="weight_label">Patient weight, kg</string>
+    <string name="weight_hint">e.g. 70</string>
+    <string name="weight_invalid">Enter a valid number</string>
+    <string name="weight_continue">Continue</string>
+    <string name="weight_note">Weight is not stored on the device.</string>
+
+    <!-- catalog -->
+    <string name="catalog_title">Drugs</string>
+    <string name="catalog_search">Search by name</string>
+    <string name="filter_all">All</string>
+    <string name="filter_favorites">Favorites</string>
+    <string name="filter_mine">Mine</string>
+    <string name="empty_mine_title">You have no custom drugs yet</string>
+    <string name="empty_favorites_title">No favorite drugs</string>
+    <string name="empty_all_title">Catalog is empty</string>
+    <string name="empty_body">Add a drug with its concentration and dose units</string>
+    <string name="badge_mine">Mine</string>
+    <string name="badge_favorite">Favorite</string>
+
+    <!-- calculator -->
+    <string name="result_label">RESULT</string>
+    <string name="status_enter">enter dose or rate</string>
+    <string name="status_no_concentration">No concentration</string>
+    <string name="status_unit_mismatch">Concentration units do not match dose units</string>
+    <string name="status_above">above range</string>
+    <string name="status_below">below range</string>
+    <string name="status_no_range">range not set</string>
+    <string name="status_in_range">in range</string>
+    <string name="warning_above_title">Dose is above the listed range</string>
+    <string name="warning_check">Check units, weight and concentration</string>
+    <string name="concentration">Concentration</string>
+    <string name="no_concentration">No concentration</string>
+    <string name="dose">Dose</string>
+    <string name="rate">Infusion rate</string>
+    <string name="range_format">Range: %1$s–%2$s %3$s</string>
+    <string name="no_range">No range specified</string>
+    <string name="computed_from_dose">calculated from dose</string>
+    <string name="computed_from_rate">calculated from rate</string>
+    <string name="weight_info">Weight: %1$s kg</string>
+    <string name="weight_not_set">not set</string>
+    <string name="weight_required">Set the weight at launch — per-kg calculation is impossible without it</string>
+    <string name="disclaimer_short">This calculator does not replace a physician\'s order</string>
+    <string name="edit_drug">Edit drug</string>
+    <string name="card">Details</string>
+    <string name="no_presets">No presets</string>
+
+    <!-- drug card -->
+    <string name="card_title_catalog">Catalog</string>
+    <string name="card_title_mine">My drug</string>
+    <string name="section_dosing">Dosing</string>
+    <string name="section_concentrations">Concentrations</string>
+    <string name="add_concentration">Add concentration</string>
+    <string name="edit_concentration">Edit concentration</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="section_notes">Notes</string>
+    <string name="to_calc">Go to calculation</string>
+
+    <!-- editor -->
+    <string name="editor_new">New drug</string>
+    <string name="editor_edit">Edit drug</string>
+    <string name="name">Name</string>
+    <string name="units">Dose units</string>
+    <string name="per_kg">Dose per kg</string>
+    <string name="time_base">Time base</string>
+    <string name="per_minute">per minute</string>
+    <string name="per_hour">per hour</string>
+    <string name="range_from">Range from</string>
+    <string name="range_to">to</string>
+    <string name="concentration_preset">Concentration (preset)</string>
+    <string name="mass">Mass</string>
+    <string name="mass_unit">Unit of amount</string>
+    <string name="volume">Volume, mL</string>
+    <string name="concentration_preview">= %1$s %2$s/mL</string>
+    <string name="concentration_empty">Enter mass and volume</string>
+
+    <!-- settings -->
+    <string name="theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="language">Language</string>
+    <string name="language_system">System (RU/EN by device language)</string>
+    <string name="version">Version 0.1.0</string>
+    <string name="settings_offline">The app works offline, data is not transmitted</string>
+</resources>

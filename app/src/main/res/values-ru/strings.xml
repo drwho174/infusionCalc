@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Калькулятор инфузии</string>
+
+    <!-- common -->
+    <string name="back">Назад</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="settings">Настройки</string>
+    <string name="add">Добавить</string>
+    <string name="add_drug">Добавить препарат</string>
+    <string name="offline_note">Работает офлайн. Данные остаются на устройстве.</string>
+
+    <!-- disclaimer -->
+    <string name="disclaimer_title">Калькулятор скорости инфузии</string>
+    <string name="disclaimer_body">Считает скорость инфузии по дозе и дозу по скорости. Концентрация выбирается из предустановок препарата. Справочный инструмент, не заменяет назначение и проверку врачом.</string>
+    <string name="disclaimer_accept">Принять и продолжить</string>
+
+    <!-- weight -->
+    <string name="weight_title">Вес пациента</string>
+    <string name="weight_subtitle">Укажите вес один раз — он действует для всех препаратов</string>
+    <string name="weight_label">Вес пациента, кг</string>
+    <string name="weight_hint">например, 70</string>
+    <string name="weight_invalid">Введите корректное число</string>
+    <string name="weight_continue">Продолжить</string>
+    <string name="weight_note">Вес не сохраняется на устройстве.</string>
+
+    <!-- catalog -->
+    <string name="catalog_title">Препараты</string>
+    <string name="catalog_search">Поиск по названию</string>
+    <string name="filter_all">Все</string>
+    <string name="filter_favorites">Избранное</string>
+    <string name="filter_mine">Мои</string>
+    <string name="empty_mine_title">У вас пока нет своих препаратов</string>
+    <string name="empty_favorites_title">Нет избранных препаратов</string>
+    <string name="empty_all_title">Каталог пока пуст</string>
+    <string name="empty_body">Добавьте препарат с нужной концентрацией и единицами дозы</string>
+    <string name="badge_mine">Мой</string>
+    <string name="badge_favorite">Избранное</string>
+
+    <!-- calculator -->
+    <string name="result_label">РЕЗУЛЬТАТ</string>
+    <string name="status_enter">укажите дозу или скорость</string>
+    <string name="status_no_concentration">Нет концентрации</string>
+    <string name="status_unit_mismatch">Единицы концентрации не совпадают с единицами дозы</string>
+    <string name="status_above">выше диапазона</string>
+    <string name="status_below">ниже диапазона</string>
+    <string name="status_no_range">диапазон не задан</string>
+    <string name="status_in_range">в диапазоне</string>
+    <string name="warning_above_title">Доза выше указанного диапазона</string>
+    <string name="warning_check">Проверьте единицы, вес и концентрацию</string>
+    <string name="concentration">Концентрация</string>
+    <string name="no_concentration">Нет концентрации</string>
+    <string name="dose">Доза</string>
+    <string name="rate">Скорость инфузии</string>
+    <string name="range_format">Диапазон: %1$s–%2$s %3$s</string>
+    <string name="no_range">Диапазон не указан</string>
+    <string name="computed_from_dose">пересчитано из дозы</string>
+    <string name="computed_from_rate">пересчитано из скорости</string>
+    <string name="weight_info">Вес: %1$s кг</string>
+    <string name="weight_not_set">не задан</string>
+    <string name="weight_required">Укажите вес при запуске — без него расчёт на кг невозможен</string>
+    <string name="disclaimer_short">Калькулятор не заменяет назначение врача</string>
+    <string name="edit_drug">Изменить препарат</string>
+    <string name="card">Карточка</string>
+    <string name="no_presets">Нет пресетов</string>
+
+    <!-- drug card -->
+    <string name="card_title_catalog">Каталог</string>
+    <string name="card_title_mine">Мой препарат</string>
+    <string name="section_dosing">Дозирование</string>
+    <string name="section_concentrations">Концентрации</string>
+    <string name="add_concentration">Добавить концентрацию</string>
+    <string name="edit_concentration">Изменить концентрацию</string>
+    <string name="delete">Удалить</string>
+    <string name="edit">Изменить</string>
+    <string name="section_notes">Заметки</string>
+    <string name="to_calc">К расчёту</string>
+
+    <!-- editor -->
+    <string name="editor_new">Новый препарат</string>
+    <string name="editor_edit">Редактирование</string>
+    <string name="name">Название</string>
+    <string name="units">Единицы дозы</string>
+    <string name="per_kg">Дозировка на кг</string>
+    <string name="time_base">База времени</string>
+    <string name="per_minute">в минуту</string>
+    <string name="per_hour">в час</string>
+    <string name="range_from">Диапазон от</string>
+    <string name="range_to">до</string>
+    <string name="concentration_preset">Концентрация (пресет)</string>
+    <string name="mass">Масса</string>
+    <string name="mass_unit">Единица массы</string>
+    <string name="volume">Объём, мл</string>
+    <string name="concentration_preview">= %1$s %2$s/мл</string>
+    <string name="concentration_empty">Укажите массу и объём</string>
+
+    <!-- settings -->
+    <string name="theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="language">Язык</string>
+    <string name="language_system">Системный (RU/EN по языку устройства)</string>
+    <string name="version">Версия 0.1.0</string>
+    <string name="settings_offline">Приложение работает офлайн, данные не передаются</string>
+</resources>

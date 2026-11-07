@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Только цвета окна; палитра Compose живёт в ui/theme/Color.kt. -->
+    <color name="md_theme_light_background">#FAFDFA</color>
+    <color name="md_theme_dark_background">#191C1B</color>
+</resources>
