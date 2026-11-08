@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -33,6 +34,18 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+val detektCli = configurations.create("detektCli")
+
 dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
@@ -46,13 +59,64 @@ dependencies {
     implementation(libs.room3.runtime)
     implementation(libs.sqlite.bundled)
     implementation(libs.datastore.preferences)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     ksp(libs.room3.compiler)
     implementation(project(":core-engine"))
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.sqlite.framework)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
+    detektCli(libs.detekt.cli)
+}
+
+ktlint {
+    android.set(true)
+}
+
+tasks.register<JavaExec>("detekt") {
+    group = "verification"
+    description = "Runs detekt over main and test sources."
+    classpath = detektCli
+    mainClass.set("io.gitlab.arturbosch.detekt.cli.Main")
+    workingDir = projectDir
+    args =
+        listOf(
+            "--input",
+            "src/main/java,src/test/java",
+            "--jvm-target",
+            "17",
+            "--baseline",
+            "$rootDir/config/detekt-baseline.xml",
+        )
+}
+
+tasks.register<JavaExec>("detektBaseline") {
+    group = "verification"
+    description = "Creates a detekt baseline."
+    classpath = detektCli
+    mainClass.set("io.gitlab.arturbosch.detekt.cli.Main")
+    workingDir = projectDir
+    args =
+        listOf(
+            "--input",
+            "src/main/java,src/test/java",
+            "--jvm-target",
+            "17",
+            "--baseline",
+            "$rootDir/config/detekt-baseline.xml",
+            "--create-baseline",
+        )
+}
+
+tasks.named("check") {
+    dependsOn("detekt")
 }

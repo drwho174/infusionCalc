@@ -8,40 +8,60 @@ import androidx.room3.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface DrugDao {
-
+abstract class DrugDao {
     @Transaction
     @Query("SELECT * FROM drugs WHERE archived = 0 ORDER BY nameRu COLLATE NOCASE")
-    fun observeDrugs(): Flow<List<DrugWithDetails>>
+    abstract fun observeDrugs(): Flow<List<DrugWithDetails>>
 
     @Transaction
     @Query("SELECT * FROM drugs WHERE id = :id")
-    suspend fun getDrug(id: String): DrugWithDetails?
+    abstract fun observeDrug(id: String): Flow<DrugWithDetails?>
+
+    @Transaction
+    @Query("SELECT * FROM drugs WHERE id = :id")
+    abstract suspend fun getDrug(id: String): DrugWithDetails?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDrug(drug: DrugEntity)
+    abstract suspend fun insertDrug(drug: DrugEntity)
 
     @Query("DELETE FROM dose_schemes WHERE drugId = :drugId")
-    suspend fun deleteSchemes(drugId: String)
+    abstract suspend fun deleteSchemes(drugId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSchemes(schemes: List<DoseSchemeEntity>)
+    abstract suspend fun insertSchemes(schemes: List<DoseSchemeEntity>)
 
     @Query("DELETE FROM concentration_presets WHERE drugId = :drugId")
-    suspend fun deletePresets(drugId: String)
+    abstract suspend fun deletePresets(drugId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPresets(presets: List<ConcentrationPresetEntity>)
+    abstract suspend fun insertPresets(presets: List<ConcentrationPresetEntity>)
 
     @Query("DELETE FROM drugs WHERE id = :id")
-    suspend fun deleteDrug(id: String)
+    abstract suspend fun deleteDrug(id: String)
 
     @Query("SELECT drugId FROM favorites")
-    fun observeFavoriteIds(): Flow<List<String>>
+    abstract fun observeFavoriteIds(): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFavorite(favorite: FavoriteEntity)
+    abstract suspend fun insertFavorite(favorite: FavoriteEntity)
 
     @Query("DELETE FROM favorites WHERE drugId = :drugId")
-    suspend fun deleteFavorite(drugId: String)
+    abstract suspend fun deleteFavorite(drugId: String)
+
+    /**
+     * Атомарно сохраняет карточку: сам препарат, его схемы и пресеты.
+     * Без транзакции сбой посередине оставит препарат без схем/пресетов.
+     */
+    @Transaction
+    open suspend fun saveWithDetails(
+        drug: DrugEntity,
+        schemes: List<DoseSchemeEntity>,
+        presets: List<ConcentrationPresetEntity>,
+    ) {
+        insertDrug(drug)
+        deleteSchemes(drug.id)
+        insertSchemes(schemes)
+        deletePresets(drug.id)
+        insertPresets(presets)
+    }
 }

@@ -7,7 +7,6 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class FormatTest {
-
     @Test
     fun `scheme label russian`() {
         assertEquals(

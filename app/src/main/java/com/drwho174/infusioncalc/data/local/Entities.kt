@@ -1,11 +1,11 @@
 package com.drwho174.infusioncalc.data.local
 
+import androidx.room3.Embedded
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
 import androidx.room3.Relation
-import androidx.room3.Embedded
 
 @Entity(tableName = "drugs")
 data class DrugEntity(

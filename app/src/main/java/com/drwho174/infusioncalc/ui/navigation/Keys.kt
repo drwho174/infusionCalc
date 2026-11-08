@@ -13,13 +13,19 @@ data object WeightKey : NavKey
 data object CatalogKey : NavKey
 
 @Serializable
-data class CalculatorKey(val drugId: String) : NavKey
+data class CalculatorKey(
+    val drugId: String,
+) : NavKey
 
 @Serializable
-data class DrugCardKey(val drugId: String) : NavKey
+data class DrugCardKey(
+    val drugId: String,
+) : NavKey
 
 @Serializable
-data class EditorKey(val drugId: String? = null) : NavKey
+data class EditorKey(
+    val drugId: String? = null,
+) : NavKey
 
 @Serializable
 data object SettingsKey : NavKey

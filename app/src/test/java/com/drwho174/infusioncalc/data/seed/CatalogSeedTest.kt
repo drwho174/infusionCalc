@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CatalogSeedTest {
-
     private val drugs = CatalogSeed.drugs()
 
     @Test

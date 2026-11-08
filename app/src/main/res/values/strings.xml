@@ -54,6 +54,7 @@
     <string name="no_concentration">No concentration</string>
     <string name="dose">Dose</string>
     <string name="rate">Infusion rate</string>
+    <string name="rate_unit">mL/h</string>
     <string name="range_format">Range: %1$s–%2$s %3$s</string>
     <string name="no_range">No range specified</string>
     <string name="computed_from_dose">calculated from dose</string>

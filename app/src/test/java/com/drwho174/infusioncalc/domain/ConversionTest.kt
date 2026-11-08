@@ -10,8 +10,10 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class ConversionTest {
-
-    private fun assertDecimal(expected: String, actual: BigDecimal?) {
+    private fun assertDecimal(
+        expected: String,
+        actual: BigDecimal?,
+    ) {
         requireNotNull(actual) { "expected $expected but was null" }
         assertEquals("expected $expected but was $actual", 0, BigDecimal(expected).compareTo(actual))
     }
@@ -33,15 +35,16 @@ class ConversionTest {
 
     @Test
     fun `preset concentration is converted to the target unit`() {
-        val preset = ConcentrationPreset(
-            id = "p",
-            drugId = "d",
-            mode = ConcentrationMode.MASS_VOLUME,
-            amount = BigDecimal("8000"),
-            amountUnit = AmountUnit.MCG,
-            volumeMl = BigDecimal("50"),
-            isDefault = true,
-        )
+        val preset =
+            ConcentrationPreset(
+                id = "p",
+                drugId = "d",
+                mode = ConcentrationMode.MASS_VOLUME,
+                amount = BigDecimal("8000"),
+                amountUnit = AmountUnit.MCG,
+                volumeMl = BigDecimal("50"),
+                isDefault = true,
+            )
         assertDecimal("160", preset.concentrationIn(AmountUnit.MCG))
         assertDecimal("0.16", preset.concentrationIn(AmountUnit.MG))
         assertNull(preset.concentrationIn(AmountUnit.UNIT))

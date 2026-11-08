@@ -14,24 +14,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
-import com.drwho174.infusioncalc.ui.rememberAppContainer
-import java.math.BigDecimal
+import com.drwho174.infusioncalc.ui.viewmodel.WeightViewModel
 
 @Composable
-fun WeightScreen(onContinue: () -> Unit) {
-    val container = rememberAppContainer()
-    var text by rememberSaveable { mutableStateOf("") }
-    val weight = remember(text) { text.toBigDecimalOrNull() }
-    val valid = weight != null && weight > BigDecimal.ZERO && weight <= BigDecimal("300")
+fun WeightScreen(
+    viewModel: WeightViewModel,
+    onContinue: () -> Unit,
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -45,21 +41,19 @@ fun WeightScreen(onContinue: () -> Unit) {
         )
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
-            value = text,
-            onValueChange = { raw ->
-                text = raw.filter { it.isDigit() || it == '.' || it == ',' }.replace(',', '.')
-            },
+            value = state.text,
+            onValueChange = viewModel::onTextChange,
             label = { Text(stringResource(R.string.weight_label)) },
             supportingText = {
                 Text(
-                    if (text.isNotEmpty() && !valid) {
+                    if (state.text.isNotEmpty() && !state.valid) {
                         stringResource(R.string.weight_invalid)
                     } else {
                         stringResource(R.string.weight_hint)
                     },
                 )
             },
-            isError = text.isNotEmpty() && !valid,
+            isError = state.text.isNotEmpty() && !state.valid,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
@@ -67,10 +61,10 @@ fun WeightScreen(onContinue: () -> Unit) {
         Spacer(Modifier.height(32.dp))
         Button(
             onClick = {
-                container.weightStore.set(weight)
+                viewModel.commit()
                 onContinue()
             },
-            enabled = valid,
+            enabled = state.valid,
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {
             Text(stringResource(R.string.weight_continue))

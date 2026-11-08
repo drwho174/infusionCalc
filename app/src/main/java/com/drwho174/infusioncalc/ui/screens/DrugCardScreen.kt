@@ -24,11 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,55 +34,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.ConcentrationMode
 import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
-import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.ui.amountUnitLabel
 import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.displayLabel
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.normalizeDecimalInput
-import com.drwho174.infusioncalc.ui.rememberAppContainer
 import com.drwho174.infusioncalc.ui.schemeLabel
-import kotlinx.coroutines.launch
+import com.drwho174.infusioncalc.ui.viewmodel.DrugCardViewModel
 import java.math.BigDecimal
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrugCardScreen(
-    drugId: String,
+    viewModel: DrugCardViewModel,
     onBack: () -> Unit,
     onCalculate: () -> Unit,
 ) {
-    val container = rememberAppContainer()
-    val scope = rememberCoroutineScope()
-    var drug by remember { mutableStateOf<Drug?>(null) }
+    val drug by viewModel.drug.collectAsStateWithLifecycle()
     var dialogOpen by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<ConcentrationPreset?>(null) }
-
-    LaunchedEffect(drugId) {
-        drug = container.drugRepository.getDrug(drugId)
-    }
-
-    fun persist(updatedPresets: List<ConcentrationPreset>) {
-        val current = drug ?: return
-        val withDefault = updatedPresets.let { list ->
-            if (list.isEmpty() || list.any { it.isDefault }) list
-            else list.mapIndexed { index, p -> if (index == 0) p.copy(isDefault = true) else p }
-        }
-        val updated = current.copy(
-            presets = withDefault,
-            revision = current.revision + 1,
-            updatedAt = System.currentTimeMillis(),
-        )
-        scope.launch {
-            container.drugRepository.save(updated)
-            drug = container.drugRepository.getDrug(current.id)
-        }
-    }
 
     val current = drug
     Scaffold(
@@ -93,8 +67,11 @@ fun DrugCardScreen(
                 title = {
                     Text(
                         stringResource(
-                            if (current?.isBuiltIn == true) R.string.card_title_catalog
-                            else R.string.card_title_mine,
+                            if (current?.isBuiltIn == true) {
+                                R.string.card_title_catalog
+                            } else {
+                                R.string.card_title_mine
+                            },
                         ),
                     )
                 },
@@ -112,11 +89,12 @@ fun DrugCardScreen(
             return@Scaffold
         }
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
         ) {
             Text(current.localizedName(isEnglishUi()), style = MaterialTheme.typography.headlineSmall)
             if (current.route.isNotBlank()) {
@@ -127,8 +105,9 @@ fun DrugCardScreen(
             SectionCard(title = stringResource(R.string.section_dosing)) {
                 current.schemes.forEach { scheme ->
                     Text(
-                        text = schemeLabel(scheme.amountUnit, scheme.perKg, scheme.perTime) +
-                            (scheme.indication?.let { " · $it" } ?: ""),
+                        text =
+                            schemeLabel(scheme.amountUnit, scheme.perKg, scheme.perTime) +
+                                (scheme.indication?.let { " · $it" } ?: ""),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     if (scheme.doseMin != null || scheme.doseMax != null) {
@@ -165,7 +144,7 @@ fun DrugCardScreen(
                         }
                         if (current.presets.size > 1) {
                             TextButton(onClick = {
-                                persist(current.presets.filterNot { it.id == preset.id })
+                                viewModel.savePresets(current.presets.filterNot { it.id == preset.id })
                             }) {
                                 Text(stringResource(R.string.delete))
                             }
@@ -197,29 +176,32 @@ fun DrugCardScreen(
         }
     }
 
-    if (dialogOpen) {
+    if (dialogOpen && current != null) {
         PresetEditorDialog(
             initial = editTarget,
             onDismiss = { dialogOpen = false },
             onSave = { amount, unit, volume ->
-                val base = editTarget ?: ConcentrationPreset(
-                    id = UUID.randomUUID().toString(),
-                    drugId = current?.id ?: "",
-                    mode = ConcentrationMode.MASS_VOLUME,
-                )
-                val preset = base.copy(
-                    mode = ConcentrationMode.MASS_VOLUME,
-                    amount = amount,
-                    amountUnit = unit,
-                    volumeMl = volume,
-                )
-                val existing = current?.presets.orEmpty()
-                val updated = if (editTarget == null) {
-                    existing + preset
-                } else {
-                    existing.map { if (it.id == preset.id) preset else it }
-                }
-                persist(updated)
+                val base =
+                    editTarget ?: ConcentrationPreset(
+                        id = UUID.randomUUID().toString(),
+                        drugId = current.id,
+                        mode = ConcentrationMode.MASS_VOLUME,
+                    )
+                val preset =
+                    base.copy(
+                        mode = ConcentrationMode.MASS_VOLUME,
+                        amount = amount,
+                        amountUnit = unit,
+                        volumeMl = volume,
+                    )
+                val existing = current.presets
+                val updated =
+                    if (editTarget == null) {
+                        existing + preset
+                    } else {
+                        existing.map { if (it.id == preset.id) preset else it }
+                    }
+                viewModel.savePresets(updated)
                 dialogOpen = false
             },
         )
@@ -240,8 +222,11 @@ private fun PresetEditorDialog(
     val unit = AmountUnit.valueOf(unitName)
     val amountValue = amount.toBigDecimalOrNull()
     val volumeValue = volume.toBigDecimalOrNull()
-    val valid = amountValue != null && amountValue.signum() > 0 &&
-        volumeValue != null && volumeValue.signum() > 0
+    val valid =
+        amountValue != null &&
+            amountValue.signum() > 0 &&
+            volumeValue != null &&
+            volumeValue.signum() > 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -292,7 +277,7 @@ private fun PresetEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { if (valid) onSave(amountValue!!, unit, volumeValue!!) },
+                onClick = { if (valid) onSave(amountValue, unit, volumeValue) },
                 enabled = valid,
             ) {
                 Text(stringResource(R.string.save))
@@ -305,11 +290,15 @@ private fun PresetEditorDialog(
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable () -> Unit) {
+private fun SectionCard(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

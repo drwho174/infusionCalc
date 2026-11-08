@@ -1,0 +1,343 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "76a204440c2ad9f8ed6a840af468dd50",
+    "entities": [
+      {
+        "tableName": "drugs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nameRu` TEXT NOT NULL, `nameEn` TEXT, `drugClass` TEXT NOT NULL, `highAlert` INTEGER NOT NULL, `route` TEXT NOT NULL, `defaultSchemeId` TEXT, `isBuiltIn` INTEGER NOT NULL, `derivedFromId` TEXT, `verification` TEXT NOT NULL, `notes` TEXT, `incompatibilities` TEXT, `revision` INTEGER NOT NULL, `catalogVersion` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `archived` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nameRu",
+            "columnName": "nameRu",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nameEn",
+            "columnName": "nameEn",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "drugClass",
+            "columnName": "drugClass",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "highAlert",
+            "columnName": "highAlert",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "route",
+            "columnName": "route",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultSchemeId",
+            "columnName": "defaultSchemeId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isBuiltIn",
+            "columnName": "isBuiltIn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "derivedFromId",
+            "columnName": "derivedFromId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "verification",
+            "columnName": "verification",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "incompatibilities",
+            "columnName": "incompatibilities",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catalogVersion",
+            "columnName": "catalogVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "dose_schemes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `drugId` TEXT NOT NULL, `amountUnit` TEXT NOT NULL, `perKg` INTEGER NOT NULL, `perTime` TEXT NOT NULL, `indication` TEXT, `doseMin` TEXT, `doseMax` TEXT, `titrationStep` TEXT, `maxDose` TEXT, `maxRate` TEXT, `editedByUser` INTEGER NOT NULL, `schemeOrder` INTEGER NOT NULL, `roundingOverride` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`drugId`) REFERENCES `drugs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drugId",
+            "columnName": "drugId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountUnit",
+            "columnName": "amountUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "perKg",
+            "columnName": "perKg",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "perTime",
+            "columnName": "perTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indication",
+            "columnName": "indication",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "doseMin",
+            "columnName": "doseMin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "doseMax",
+            "columnName": "doseMax",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "titrationStep",
+            "columnName": "titrationStep",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxDose",
+            "columnName": "maxDose",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxRate",
+            "columnName": "maxRate",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "editedByUser",
+            "columnName": "editedByUser",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemeOrder",
+            "columnName": "schemeOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roundingOverride",
+            "columnName": "roundingOverride",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_dose_schemes_drugId",
+            "unique": false,
+            "columnNames": [
+              "drugId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dose_schemes_drugId` ON `${TABLE_NAME}` (`drugId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "drugs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "drugId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "concentration_presets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `drugId` TEXT NOT NULL, `mode` TEXT NOT NULL, `amount` TEXT, `amountUnit` TEXT, `volumeMl` TEXT, `ampouleConcentration` TEXT, `ampouleVolumeMl` TEXT, `isDefault` INTEGER NOT NULL, `label` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`drugId`) REFERENCES `drugs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drugId",
+            "columnName": "drugId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "amountUnit",
+            "columnName": "amountUnit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "volumeMl",
+            "columnName": "volumeMl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ampouleConcentration",
+            "columnName": "ampouleConcentration",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ampouleVolumeMl",
+            "columnName": "ampouleVolumeMl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_concentration_presets_drugId",
+            "unique": false,
+            "columnNames": [
+              "drugId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_concentration_presets_drugId` ON `${TABLE_NAME}` (`drugId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "drugs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "drugId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "favorites",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`drugId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`drugId`))",
+        "fields": [
+          {
+            "fieldPath": "drugId",
+            "columnName": "drugId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "drugId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '76a204440c2ad9f8ed6a840af468dd50')"
+    ]
+  }
+}

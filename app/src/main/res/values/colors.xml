@@ -3,4 +3,6 @@
     <!-- Только цвета окна; палитра Compose живёт в ui/theme/Color.kt. -->
     <color name="md_theme_light_background">#FAFDFA</color>
     <color name="md_theme_dark_background">#191C1B</color>
+    <!-- Фон adaptive launcher-иконки (совпадает с фоном исходного изображения). -->
+    <color name="ic_launcher_background">#FBE5A2</color>
 </resources>

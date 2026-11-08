@@ -54,6 +54,7 @@
     <string name="no_concentration">Нет концентрации</string>
     <string name="dose">Доза</string>
     <string name="rate">Скорость инфузии</string>
+    <string name="rate_unit">мл/ч</string>
     <string name="range_format">Диапазон: %1$s–%2$s %3$s</string>
     <string name="no_range">Диапазон не указан</string>
     <string name="computed_from_dose">пересчитано из дозы</string>

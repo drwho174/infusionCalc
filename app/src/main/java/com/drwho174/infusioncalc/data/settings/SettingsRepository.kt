@@ -23,21 +23,23 @@ data class AppSettings(
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
-class SettingsRepository(private val context: Context) {
-
+class SettingsRepository(
+    private val context: Context,
+) {
     private object Keys {
         val disclaimer = booleanPreferencesKey("disclaimer_accepted")
         val theme = stringPreferencesKey("theme")
         val language = stringPreferencesKey("language")
     }
 
-    val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
-        AppSettings(
-            disclaimerAccepted = prefs[Keys.disclaimer] ?: false,
-            theme = prefs[Keys.theme] ?: AppSettings.THEME_SYSTEM,
-            language = prefs[Keys.language] ?: AppSettings.LANGUAGE_SYSTEM,
-        )
-    }
+    val settings: Flow<AppSettings> =
+        context.settingsDataStore.data.map { prefs ->
+            AppSettings(
+                disclaimerAccepted = prefs[Keys.disclaimer] ?: false,
+                theme = prefs[Keys.theme] ?: AppSettings.THEME_SYSTEM,
+                language = prefs[Keys.language] ?: AppSettings.LANGUAGE_SYSTEM,
+            )
+        }
 
     suspend fun setDisclaimerAccepted() {
         context.settingsDataStore.edit { it[Keys.disclaimer] = true }

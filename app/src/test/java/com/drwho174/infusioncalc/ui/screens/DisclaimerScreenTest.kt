@@ -15,7 +15,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class DisclaimerScreenTest {
-
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -28,7 +27,8 @@ class DisclaimerScreenTest {
             }
         }
         val context = RuntimeEnvironment.getApplication()
-        composeRule.onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_accept))
+        composeRule
+            .onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_accept))
             .performClick()
         assertTrue(clicked)
     }
@@ -41,9 +41,11 @@ class DisclaimerScreenTest {
             }
         }
         val context = RuntimeEnvironment.getApplication()
-        composeRule.onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_title))
+        composeRule
+            .onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_title))
             .assertExists()
-        composeRule.onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_body))
+        composeRule
+            .onNodeWithText(context.getString(com.drwho174.infusioncalc.R.string.disclaimer_body))
             .assertExists()
     }
 }

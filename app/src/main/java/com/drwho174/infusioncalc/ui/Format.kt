@@ -30,25 +30,29 @@ fun normalizeDecimalInput(raw: String): String {
     return sb.toString()
 }
 
-fun amountUnitLabel(unit: AmountUnit, english: Boolean = isEnglishUi()): String = if (english) {
-    when (unit) {
-        AmountUnit.MCG -> "mcg"
-        AmountUnit.MG -> "mg"
-        AmountUnit.G -> "g"
-        AmountUnit.UNIT -> "units"
-        AmountUnit.IU -> "IU"
-        AmountUnit.MEQ -> "mEq"
+fun amountUnitLabel(
+    unit: AmountUnit,
+    english: Boolean = isEnglishUi(),
+): String =
+    if (english) {
+        when (unit) {
+            AmountUnit.MCG -> "mcg"
+            AmountUnit.MG -> "mg"
+            AmountUnit.G -> "g"
+            AmountUnit.UNIT -> "units"
+            AmountUnit.IU -> "IU"
+            AmountUnit.MEQ -> "mEq"
+        }
+    } else {
+        when (unit) {
+            AmountUnit.MCG -> "мкг"
+            AmountUnit.MG -> "мг"
+            AmountUnit.G -> "г"
+            AmountUnit.UNIT -> "ЕД"
+            AmountUnit.IU -> "МЕ"
+            AmountUnit.MEQ -> "мэкв"
+        }
     }
-} else {
-    when (unit) {
-        AmountUnit.MCG -> "мкг"
-        AmountUnit.MG -> "мг"
-        AmountUnit.G -> "г"
-        AmountUnit.UNIT -> "ЕД"
-        AmountUnit.IU -> "МЕ"
-        AmountUnit.MEQ -> "мэкв"
-    }
-}
 
 fun schemeLabel(
     unit: AmountUnit,
@@ -58,10 +62,11 @@ fun schemeLabel(
 ): String {
     val base = amountUnitLabel(unit, english)
     val perKgPart = if (perKg) (if (english) "/kg" else "/кг") else ""
-    val timePart = when (perTime) {
-        TimeBase.PER_MINUTE -> if (english) "/min" else "/мин"
-        TimeBase.PER_HOUR -> if (english) "/h" else "/ч"
-    }
+    val timePart =
+        when (perTime) {
+            TimeBase.PER_MINUTE -> if (english) "/min" else "/мин"
+            TimeBase.PER_HOUR -> if (english) "/h" else "/ч"
+        }
     return base + perKgPart + timePart
 }
 

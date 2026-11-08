@@ -1,10 +1,12 @@
 package com.drwho174.infusioncalc.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.drwho174.infusioncalc.ui.navigation.CalculatorKey
@@ -14,6 +16,7 @@ import com.drwho174.infusioncalc.ui.navigation.DrugCardKey
 import com.drwho174.infusioncalc.ui.navigation.EditorKey
 import com.drwho174.infusioncalc.ui.navigation.SettingsKey
 import com.drwho174.infusioncalc.ui.navigation.WeightKey
+import com.drwho174.infusioncalc.ui.navigation.navSerializersModule
 import com.drwho174.infusioncalc.ui.screens.CalculatorScreen
 import com.drwho174.infusioncalc.ui.screens.CatalogScreen
 import com.drwho174.infusioncalc.ui.screens.DisclaimerScreen
@@ -21,79 +24,97 @@ import com.drwho174.infusioncalc.ui.screens.DrugCardScreen
 import com.drwho174.infusioncalc.ui.screens.EditorScreen
 import com.drwho174.infusioncalc.ui.screens.SettingsScreen
 import com.drwho174.infusioncalc.ui.screens.WeightScreen
-import kotlinx.coroutines.launch
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
-private val navigationConfig = SavedStateConfiguration {
-    serializersModule = SerializersModule {
-        polymorphic(NavKey::class) {
-            subclass(DisclaimerKey::class)
-            subclass(WeightKey::class)
-            subclass(CatalogKey::class)
-            subclass(CalculatorKey::class)
-            subclass(DrugCardKey::class)
-            subclass(EditorKey::class)
-            subclass(SettingsKey::class)
-        }
+private val navigationConfig =
+    SavedStateConfiguration {
+        serializersModule = navSerializersModule
     }
-}
 
 @Composable
-fun AppNav(disclaimerAccepted: Boolean) {
-    val container = rememberAppContainer()
-    val scope = rememberCoroutineScope()
+fun AppNav(
+    disclaimerAccepted: Boolean,
+    onAcceptDisclaimer: () -> Unit,
+) {
     val startKey: NavKey = if (disclaimerAccepted) WeightKey else DisclaimerKey
     val backStack = rememberNavBackStack(navigationConfig, startKey)
 
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
-        entryProvider = entryProvider {
-            entry<DisclaimerKey> {
-                DisclaimerScreen(
-                    onAccept = {
-                        scope.launch { container.settingsRepository.setDisclaimerAccepted() }
-                        backStack.add(WeightKey)
-                    },
-                )
-            }
-            entry<WeightKey> {
-                WeightScreen(onContinue = { backStack.add(CatalogKey) })
-            }
-            entry<CatalogKey> {
-                CatalogScreen(
-                    onOpenDrug = { drugId -> backStack.add(CalculatorKey(drugId)) },
-                    onAddDrug = { backStack.add(EditorKey()) },
-                    onOpenSettings = { backStack.add(SettingsKey) },
-                )
-            }
-            entry<CalculatorKey> { key ->
-                CalculatorScreen(
-                    drugId = key.drugId,
-                    onBack = { backStack.removeLastOrNull() },
-                    onOpenCard = { backStack.add(DrugCardKey(key.drugId)) },
-                    onEditDrug = { backStack.add(EditorKey(key.drugId)) },
-                )
-            }
-            entry<DrugCardKey> { key ->
-                DrugCardScreen(
-                    drugId = key.drugId,
-                    onBack = { backStack.removeLastOrNull() },
-                    onCalculate = { backStack.add(CalculatorKey(key.drugId)) },
-                )
-            }
-            entry<EditorKey> { key ->
-                EditorScreen(
-                    drugId = key.drugId,
-                    onBack = { backStack.removeLastOrNull() },
-                    onSaved = { backStack.removeLastOrNull() },
-                )
-            }
-            entry<SettingsKey> {
-                SettingsScreen(onBack = { backStack.removeLastOrNull() })
-            }
-        },
+        entryDecorators =
+            listOf<NavEntryDecorator<NavKey>>(
+                rememberSaveableStateHolderNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator(),
+            ),
+        entryProvider =
+            entryProvider {
+                entry<DisclaimerKey> {
+                    DisclaimerScreen(
+                        onAccept = {
+                            onAcceptDisclaimer()
+                            backStack.add(WeightKey)
+                        },
+                    )
+                }
+                entry<WeightKey> {
+                    WeightScreen(
+                        viewModel = koinViewModel(),
+                        onContinue = { backStack.add(CatalogKey) },
+                    )
+                }
+                entry<CatalogKey> {
+                    CatalogScreen(
+                        viewModel = koinViewModel(),
+                        onOpenDrug = { drugId -> backStack.add(CalculatorKey(drugId)) },
+                        onAddDrug = { backStack.add(EditorKey()) },
+                        onOpenSettings = { backStack.add(SettingsKey) },
+                    )
+                }
+                entry<CalculatorKey> { key ->
+                    CalculatorScreen(
+                        viewModel = koinViewModel(key = key.drugId) { parametersOf(key.drugId) },
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenCard = { backStack.add(DrugCardKey(key.drugId)) },
+                        onEditDrug = { backStack.add(EditorKey(key.drugId)) },
+                    )
+                }
+                entry<DrugCardKey> { key ->
+                    DrugCardScreen(
+                        viewModel = koinViewModel(key = key.drugId) { parametersOf(key.drugId) },
+                        onBack = { backStack.removeLastOrNull() },
+                        onCalculate = { backStack.add(CalculatorKey(key.drugId)) },
+                    )
+                }
+                entry<EditorKey> { key ->
+                    EditorScreen(
+                        viewModel =
+                            koinViewModel(key = key.drugId ?: "new") {
+                                parametersOf(key.drugId ?: "")
+                            },
+                        onBack = { backStack.removeLastOrNull() },
+                        onSaved = { savedId ->
+                            backStack.removeLastOrNull() // закрыть редактор
+                            val editedId = key.drugId
+                            // Правка встроенного препарата сохраняется копией в «Мои»:
+                            // перенаправляем экран расчёта на новую карточку.
+                            if (editedId != null && editedId != savedId) {
+                                val top = backStack.lastOrNull()
+                                if (top is CalculatorKey && top.drugId == editedId) {
+                                    backStack.removeLastOrNull()
+                                    backStack.add(CalculatorKey(savedId))
+                                }
+                            }
+                        },
+                    )
+                }
+                entry<SettingsKey> {
+                    SettingsScreen(
+                        viewModel = koinViewModel(),
+                        onBack = { backStack.removeLastOrNull() },
+                    )
+                }
+            },
     )
 }
