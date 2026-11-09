@@ -81,7 +81,7 @@ object InfusionEngine {
         if (dose.signum() == 0) return BigDecimal.ZERO
         var rounded = dose.round(MathContext(3, RoundingMode.HALF_UP))
         if (rounded.scale() > 4) rounded = rounded.setScale(4, RoundingMode.HALF_UP)
-        if (rounded.scale() < 0) rounded = rounded.setScale(0)
+        if (rounded.scale() < 0) rounded = rounded.setScale(0, RoundingMode.HALF_UP)
         return rounded
     }
 

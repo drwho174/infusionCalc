@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -96,10 +101,20 @@ private fun CalculatorContent(
             TopAppBar(
                 title = { Text(drug.localizedName(isEnglishUi()), maxLines = 1) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
+                    }
                 },
                 actions = {
-                    TextButton(onClick = onOpenCard) { Text(stringResource(R.string.card)) }
+                    IconButton(onClick = onOpenCard) {
+                        Icon(
+                            imageVector = Icons.Filled.Info,
+                            contentDescription = stringResource(R.string.card),
+                        )
+                    }
                 },
             )
         },
@@ -267,7 +282,12 @@ private fun LoadingScaffold(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(stringResource(R.string.dose)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
+                    }
                 },
             )
         },
