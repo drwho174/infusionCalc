@@ -8,16 +8,9 @@ interface DrugRepository {
 
     fun observeDrug(id: String): Flow<Drug?>
 
-    fun observeFavorites(): Flow<Set<String>>
-
     suspend fun getDrug(id: String): Drug?
 
     suspend fun save(drug: Drug)
 
     suspend fun delete(id: String)
-
-    suspend fun setFavorite(
-        drugId: String,
-        favorite: Boolean,
-    )
 }

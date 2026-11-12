@@ -39,15 +39,6 @@ abstract class DrugDao {
     @Query("DELETE FROM drugs WHERE id = :id")
     abstract suspend fun deleteDrug(id: String)
 
-    @Query("SELECT drugId FROM favorites")
-    abstract fun observeFavoriteIds(): Flow<List<String>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract suspend fun insertFavorite(favorite: FavoriteEntity)
-
-    @Query("DELETE FROM favorites WHERE drugId = :drugId")
-    abstract suspend fun deleteFavorite(drugId: String)
-
     /**
      * Атомарно сохраняет карточку: сам препарат, его схемы и пресеты.
      * Без транзакции сбой посередине оставит препарат без схем/пресетов.

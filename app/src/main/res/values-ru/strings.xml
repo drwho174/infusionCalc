@@ -29,15 +29,8 @@
     <!-- catalog -->
     <string name="catalog_title">Препараты</string>
     <string name="catalog_search">Поиск по названию</string>
-    <string name="filter_all">Все</string>
-    <string name="filter_favorites">Избранное</string>
-    <string name="filter_mine">Мои</string>
-    <string name="empty_mine_title">У вас пока нет своих препаратов</string>
-    <string name="empty_favorites_title">Нет избранных препаратов</string>
     <string name="empty_all_title">Каталог пока пуст</string>
     <string name="empty_body">Добавьте препарат с нужной концентрацией и единицами дозы</string>
-    <string name="badge_mine">Мой</string>
-    <string name="badge_favorite">Избранное</string>
     <string name="folder_all">Все</string>
     <string name="new_folder">Новая папка</string>
     <string name="folders_manage_title">Папки</string>

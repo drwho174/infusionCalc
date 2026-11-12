@@ -29,15 +29,8 @@
     <!-- catalog -->
     <string name="catalog_title">Drugs</string>
     <string name="catalog_search">Search by name</string>
-    <string name="filter_all">All</string>
-    <string name="filter_favorites">Favorites</string>
-    <string name="filter_mine">Mine</string>
-    <string name="empty_mine_title">You have no custom drugs yet</string>
-    <string name="empty_favorites_title">No favorite drugs</string>
     <string name="empty_all_title">Catalog is empty</string>
     <string name="empty_body">Add a drug with its concentration and dose units</string>
-    <string name="badge_mine">Mine</string>
-    <string name="badge_favorite">Favorite</string>
     <string name="folder_all">All</string>
     <string name="new_folder">New folder</string>
     <string name="folders_manage_title">Folders</string>

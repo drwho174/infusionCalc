@@ -11,13 +11,10 @@ class FakeDrugRepository(
     initial: List<Drug> = emptyList(),
 ) : DrugRepository {
     private val drugs = MutableStateFlow(initial)
-    private val favorites = MutableStateFlow<Set<String>>(emptySet())
 
     override fun observeDrugs(): Flow<List<Drug>> = drugs
 
     override fun observeDrug(id: String): Flow<Drug?> = drugs.map { list -> list.firstOrNull { it.id == id } }
-
-    override fun observeFavorites(): Flow<Set<String>> = favorites
 
     override suspend fun getDrug(id: String): Drug? = drugs.value.firstOrNull { it.id == id }
 
@@ -27,12 +24,5 @@ class FakeDrugRepository(
 
     override suspend fun delete(id: String) {
         drugs.value = drugs.value.filterNot { it.id == id }
-    }
-
-    override suspend fun setFavorite(
-        drugId: String,
-        favorite: Boolean,
-    ) {
-        favorites.value = if (favorite) favorites.value + drugId else favorites.value - drugId
     }
 }

@@ -1,7 +1,6 @@
 package com.drwho174.infusioncalc.data
 
 import com.drwho174.infusioncalc.data.local.DrugDao
-import com.drwho174.infusioncalc.data.local.FavoriteEntity
 import com.drwho174.infusioncalc.data.local.toDomain
 import com.drwho174.infusioncalc.data.local.toEntity
 import com.drwho174.infusioncalc.domain.model.Drug
@@ -17,8 +16,6 @@ class RoomDrugRepository(
     override fun observeDrugs(): Flow<List<Drug>> = dao.observeDrugs().map { list -> list.map { it.toDomain() } }
 
     override fun observeDrug(id: String): Flow<Drug?> = dao.observeDrug(id).map { it?.toDomain() }
-
-    override fun observeFavorites(): Flow<Set<String>> = dao.observeFavoriteIds().map { it.toSet() }
 
     override suspend fun getDrug(id: String): Drug? =
         withContext(Dispatchers.IO) {
@@ -38,15 +35,4 @@ class RoomDrugRepository(
         withContext(Dispatchers.IO) {
             dao.deleteDrug(id)
         }
-
-    override suspend fun setFavorite(
-        drugId: String,
-        favorite: Boolean,
-    ) = withContext(Dispatchers.IO) {
-        if (favorite) {
-            dao.insertFavorite(FavoriteEntity(drugId = drugId, createdAt = System.currentTimeMillis()))
-        } else {
-            dao.deleteFavorite(drugId)
-        }
-    }
 }

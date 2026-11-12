@@ -81,12 +81,6 @@ data class ConcentrationPresetEntity(
     val label: String?,
 )
 
-@Entity(tableName = "favorites")
-data class FavoriteEntity(
-    @PrimaryKey val drugId: String,
-    val createdAt: Long,
-)
-
 @Entity(tableName = "folders")
 data class FolderEntity(
     @PrimaryKey val id: String,
