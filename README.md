@@ -18,17 +18,22 @@ Android-приложение для расчёта скорости инфузи
 ## Стек
 
 Kotlin 2.4.21 · AGP 9.5.1 · Gradle 9.8.2 · Jetpack Compose (BOM 2026.09.00) ·
-Navigation 3 1.2.1 · Room 3.0.3 · DataStore · ручной DI.
+Navigation 3 1.2.1 · Room 3.0.3 · DataStore · Koin 4.2.2 · AndroidX ViewModel.
+
+Проверки: JUnit, Robolectric, Roborazzi (скриншоты), ktlint, detekt.
 
 `compileSdk 37` · `targetSdk 36` · `minSdk 24`.
 
 ## Структура
 
 ```
-app/          Compose UI, Navigation 3, Room, DataStore
-core-engine/  чистый JVM-движок расчётов на BigDecimal
-docs/         ТЗ, дизайн-документ, техплан, исследования
-preview/      макеты и скриншоты
+app/                  Compose UI, Navigation 3, Room, DataStore, Koin
+  di/                 Koin-модуль
+  ui/viewmodel/       ViewModel экранов
+  data/               Room, репозиторий, сид каталога
+core-engine/          чистый JVM-движок расчётов на BigDecimal
+docs/                 ТЗ, дизайн-документ, техплан, исследования
+preview/              макеты и скриншоты
 ```
 
 ## Сборка
@@ -37,6 +42,7 @@ preview/      макеты и скриншоты
 
 ```bash
 ./gradlew :core-engine:test :app:testDebugUnitTest :app:assembleDebug
+./gradlew :app:ktlintCheck :app:detekt
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
