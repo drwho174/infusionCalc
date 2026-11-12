@@ -35,7 +35,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.ui.isEnglishUi
-import com.drwho174.infusioncalc.ui.schemeLabel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogFilter
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 
@@ -87,7 +86,6 @@ fun CatalogScreen(
                     items(state.filtered, key = { it.id }) { drug ->
                         DrugListItem(
                             drug = drug,
-                            isFavorite = drug.id in state.favorites,
                             onOpen = { onOpenDrug(drug.id) },
                         )
                         HorizontalDivider()
@@ -145,43 +143,15 @@ private fun EmptyCatalogState(
 @Composable
 private fun DrugListItem(
     drug: Drug,
-    isFavorite: Boolean,
     onOpen: () -> Unit,
 ) {
-    val scheme = drug.defaultScheme
-    val summary = scheme?.let { schemeLabel(it.amountUnit, it.perKg, it.perTime) }.orEmpty()
-    Row(
+    Text(
+        text = drug.localizedName(isEnglishUi()),
+        style = MaterialTheme.typography.titleMedium,
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onOpen)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(drug.localizedName(isEnglishUi()), style = MaterialTheme.typography.titleMedium)
-            if (summary.isNotEmpty()) {
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (isFavorite) {
-            Text(
-                stringResource(R.string.badge_favorite),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        if (!drug.isBuiltIn) {
-            Text(
-                stringResource(R.string.badge_mine),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-    }
+    )
 }
