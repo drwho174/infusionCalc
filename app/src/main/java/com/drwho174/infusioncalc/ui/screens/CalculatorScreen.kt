@@ -15,9 +15,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -30,6 +33,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,6 +44,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
+import com.drwho174.infusioncalc.domain.model.Folder
+import com.drwho174.infusioncalc.ui.components.FolderNameField
 import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.displayLabel
 import com.drwho174.infusioncalc.ui.isEnglishUi
@@ -78,6 +87,7 @@ private fun CalculatorContent(
     onEditDrug: () -> Unit,
 ) {
     val drug = state.drug ?: return
+    var showFolders by remember { mutableStateOf(false) }
     val scheme = state.scheme
     val preset = state.preset
     val unitLabel = scheme?.let { schemeLabel(it.amountUnit, it.perKg, it.perTime) } ?: ""
@@ -109,6 +119,12 @@ private fun CalculatorContent(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showFolders = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = stringResource(R.string.folders),
+                        )
+                    }
                     IconButton(onClick = onOpenCard) {
                         Icon(
                             imageVector = Icons.Filled.Info,
@@ -270,6 +286,87 @@ private fun CalculatorContent(
                 color = MaterialTheme.colorScheme.primary,
             )
             TextButton(onClick = onEditDrug) { Text(stringResource(R.string.edit_drug)) }
+        }
+    }
+
+    if (showFolders) {
+        FolderPickerDialog(
+            folders = state.folders,
+            selected = state.drugFolderIds,
+            onCreate = viewModel::onCreateFolder,
+            onDone = { selected ->
+                viewModel.onFoldersChanged(selected)
+                showFolders = false
+            },
+            onDismiss = { showFolders = false },
+        )
+    }
+}
+
+@Composable
+private fun FolderPickerDialog(
+    folders: List<Folder>,
+    selected: Set<String>,
+    onCreate: (String) -> Unit,
+    onDone: (Set<String>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var local by remember(selected) { mutableStateOf(selected) }
+    var name by rememberSaveable { mutableStateOf("") }
+    val trimmed = name.trim()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.folders_dialog_title)) },
+        text = {
+            Column {
+                if (folders.isEmpty()) {
+                    Text(
+                        stringResource(R.string.folder_empty_body),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                FolderCheckboxList(
+                    folders = folders,
+                    selected = local,
+                    onToggle = { id, checked ->
+                        local = if (checked) local + id else local - id
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
+                FolderNameField(
+                    name = name,
+                    onNameChange = { name = it },
+                    existingNames = folders.map { it.name },
+                    onCreate = {
+                        onCreate(trimmed)
+                        name = ""
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onDone(local) }) { Text(stringResource(R.string.done)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun FolderCheckboxList(
+    folders: List<Folder>,
+    selected: Set<String>,
+    onToggle: (String, Boolean) -> Unit,
+) {
+    folders.forEach { folder ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = folder.id in selected,
+                onCheckedChange = { checked -> onToggle(folder.id, checked) },
+            )
+            Text(folder.name)
         }
     }
 }

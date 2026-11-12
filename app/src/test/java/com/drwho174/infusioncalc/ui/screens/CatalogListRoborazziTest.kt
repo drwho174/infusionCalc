@@ -10,6 +10,7 @@ import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
+import com.drwho174.infusioncalc.testutil.FakeFolderRepository
 import com.drwho174.infusioncalc.ui.theme.InfusionCalcTheme
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -41,7 +42,7 @@ class CatalogListRoborazziTest {
                     drug("b", "Мой препарат", builtIn = false),
                 ),
             )
-        val viewModel = CatalogViewModel(repository)
+        val viewModel = CatalogViewModel(repository, FakeFolderRepository())
 
         composeRule.setContent {
             InfusionCalcTheme {

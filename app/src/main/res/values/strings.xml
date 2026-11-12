@@ -38,6 +38,20 @@
     <string name="empty_body">Add a drug with its concentration and dose units</string>
     <string name="badge_mine">Mine</string>
     <string name="badge_favorite">Favorite</string>
+    <string name="folder_all">All</string>
+    <string name="new_folder">New folder</string>
+    <string name="folders_manage_title">Folders</string>
+    <string name="folder_name">Folder name</string>
+    <string name="create">Create</string>
+    <string name="folder_exists">A folder with this name already exists</string>
+    <string name="folder_name_too_long">Name is too long</string>
+    <string name="delete_folder_title">Delete folder?</string>
+    <string name="delete_folder_body">The folder will be deleted. Drugs stay in All.</string>
+    <string name="done">Done</string>
+    <string name="folder_empty_title">No drugs in this folder yet</string>
+    <string name="folder_empty_body">Add a drug to this folder from the calculation screen</string>
+    <string name="folders_dialog_title">Drug folders</string>
+    <string name="folders">Folders</string>
 
     <!-- calculator -->
     <string name="result_label">RESULT</string>

@@ -87,6 +87,40 @@ data class FavoriteEntity(
     val createdAt: Long,
 )
 
+@Entity(tableName = "folders")
+data class FolderEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    /** Нижний регистр для регистронезависимой уникальности (SQLite NOCASE не сворачивает кириллицу). */
+    val nameLower: String,
+    val createdAt: Long,
+)
+
+/** Связь «препарат ↔ папка» (многие ко многим). */
+@Entity(
+    tableName = "drug_folders",
+    primaryKeys = ["drugId", "folderId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = DrugEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["drugId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = FolderEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["folderId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("folderId")],
+)
+data class DrugFolderEntity(
+    val drugId: String,
+    val folderId: String,
+)
+
 /** Препарат с вложенными схемами и пресетами концентраций. */
 data class DrugWithDetails(
     @Embedded val drug: DrugEntity,

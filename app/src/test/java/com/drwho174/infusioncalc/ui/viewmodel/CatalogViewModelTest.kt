@@ -1,7 +1,9 @@
 package com.drwho174.infusioncalc.ui.viewmodel
 
 import com.drwho174.infusioncalc.domain.model.Drug
+import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
+import com.drwho174.infusioncalc.testutil.FakeFolderRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -30,37 +32,51 @@ class CatalogViewModelTest {
     }
 
     @Test
-    fun `filters by mine and favorites`() =
+    fun `filters drugs by folder`() =
         runTest(dispatcher) {
             val repository =
                 FakeDrugRepository(
                     listOf(
                         Drug(id = "a", nameRu = "Адреналин", isBuiltIn = true),
-                        Drug(id = "b", nameRu = "Мой препарат", isBuiltIn = false),
+                        Drug(id = "b", nameRu = "Допамин", isBuiltIn = true),
                     ),
                 )
-            val viewModel = CatalogViewModel(repository)
+            val folderRepository = FakeFolderRepository(listOf(Folder(id = "f1", name = "ОРИТ")))
+            val viewModel = CatalogViewModel(repository, folderRepository)
             val job = launch { viewModel.state.collect {} }
             advanceUntilIdle()
-
             assertEquals(2, viewModel.state.value.filtered.size)
 
-            viewModel.onFilterChange(CatalogFilter.MINE)
-            advanceUntilIdle()
-            assertEquals(
-                listOf("b"),
-                viewModel.state.value.filtered
-                    .map { it.id },
-            )
-
-            repository.setFavorite("a", true)
-            viewModel.onFilterChange(CatalogFilter.FAVORITES)
+            folderRepository.setDrugFolders("a", setOf("f1"))
+            viewModel.onFolderSelected("f1")
             advanceUntilIdle()
             assertEquals(
                 listOf("a"),
                 viewModel.state.value.filtered
                     .map { it.id },
             )
+
+            viewModel.onFolderSelected(null)
+            advanceUntilIdle()
+            assertEquals(2, viewModel.state.value.filtered.size)
+
+            job.cancel()
+        }
+
+    @Test
+    fun `creates folder and selects it`() =
+        runTest(dispatcher) {
+            val folderRepository = FakeFolderRepository()
+            val viewModel = CatalogViewModel(FakeDrugRepository(), folderRepository)
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            viewModel.onCreateFolder("ОРИТ")
+            advanceUntilIdle()
+
+            val state = viewModel.state.value
+            assertEquals(listOf("ОРИТ"), state.folders.map { it.name })
+            assertEquals(state.folders.first().id, state.selectedFolderId)
 
             job.cancel()
         }
@@ -75,7 +91,7 @@ class CatalogViewModelTest {
                         Drug(id = "b", nameRu = "Допамин", nameEn = "Dopamine", isBuiltIn = true),
                     ),
                 )
-            val viewModel = CatalogViewModel(repository)
+            val viewModel = CatalogViewModel(repository, FakeFolderRepository())
             val job = launch { viewModel.state.collect {} }
 
             viewModel.onQueryChange("epi")

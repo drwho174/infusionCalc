@@ -1,65 +1,56 @@
 package com.drwho174.infusioncalc.ui.viewmodel
 
-import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
+import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
+import com.drwho174.infusioncalc.domain.repository.FolderRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-
-enum class CatalogFilter(
-    @StringRes val titleRes: Int,
-) {
-    ALL(R.string.filter_all),
-    FAVORITES(R.string.filter_favorites),
-    MINE(R.string.filter_mine),
-}
+import kotlinx.coroutines.launch
 
 data class CatalogUiState(
     val filtered: List<Drug> = emptyList(),
-    val favorites: Set<String> = emptySet(),
+    val folders: List<Folder> = emptyList(),
+    val selectedFolderId: String? = null,
     val query: String = "",
-    val filter: CatalogFilter = CatalogFilter.ALL,
 )
 
-/** Список препаратов с поиском и фильтрами (все / избранное / мои). */
+/** Список препаратов с поиском и папками (null — «Все»). */
 class CatalogViewModel(
     private val repository: DrugRepository,
+    private val folderRepository: FolderRepository,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
-    private val filter = MutableStateFlow(CatalogFilter.ALL)
+    private val selectedFolderId = MutableStateFlow<String?>(null)
 
     val state: StateFlow<CatalogUiState> =
         combine(
             repository.observeDrugs(),
-            repository.observeFavorites(),
+            folderRepository.observeFolders(),
+            folderRepository.observeMemberships(),
             query,
-            filter,
-        ) { drugs, favorites, currentQuery, currentFilter ->
+            selectedFolderId,
+        ) { drugs, folders, memberships, currentQuery, currentFolder ->
             val filtered =
                 drugs.filter { drug ->
                     val matchesQuery =
                         currentQuery.isBlank() ||
                             drug.nameRu.contains(currentQuery, ignoreCase = true) ||
                             (drug.nameEn?.contains(currentQuery, ignoreCase = true) == true)
-                    val matchesFilter =
-                        when (currentFilter) {
-                            CatalogFilter.ALL -> true
-                            CatalogFilter.FAVORITES -> drug.id in favorites
-                            CatalogFilter.MINE -> !drug.isBuiltIn
-                        }
-                    matchesQuery && matchesFilter
+                    val matchesFolder =
+                        currentFolder == null || memberships[drug.id]?.contains(currentFolder) == true
+                    matchesQuery && matchesFolder
                 }
             CatalogUiState(
                 filtered = filtered,
-                favorites = favorites,
+                folders = folders,
+                selectedFolderId = currentFolder,
                 query = currentQuery,
-                filter = currentFilter,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CatalogUiState())
 
@@ -67,7 +58,20 @@ class CatalogViewModel(
         query.value = value
     }
 
-    fun onFilterChange(value: CatalogFilter) {
-        filter.value = value
+    fun onFolderSelected(folderId: String?) {
+        selectedFolderId.value = folderId
+    }
+
+    fun onCreateFolder(name: String) {
+        viewModelScope.launch {
+            folderRepository.create(name)?.let { selectedFolderId.value = it.id }
+        }
+    }
+
+    fun onDeleteFolder(folderId: String) {
+        viewModelScope.launch {
+            folderRepository.delete(folderId)
+            if (selectedFolderId.value == folderId) selectedFolderId.value = null
+        }
     }
 }

@@ -8,6 +8,7 @@ import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
+import com.drwho174.infusioncalc.testutil.FakeFolderRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -41,7 +42,13 @@ class CalculatorViewModelTest {
     @Test
     fun `dose is converted to infusion rate`() =
         runTest(dispatcher) {
-            val viewModel = CalculatorViewModel("norepinephrine", FakeDrugRepository(listOf(drug())), WeightStore())
+            val viewModel =
+                CalculatorViewModel(
+                    "norepinephrine",
+                    FakeDrugRepository(listOf(drug())),
+                    WeightStore(),
+                    FakeFolderRepository(),
+                )
             val job = launch { viewModel.state.collect {} }
 
             viewModel.onDoseChange("8")
@@ -57,7 +64,13 @@ class CalculatorViewModelTest {
     @Test
     fun `rate is converted back to dose`() =
         runTest(dispatcher) {
-            val viewModel = CalculatorViewModel("norepinephrine", FakeDrugRepository(listOf(drug())), WeightStore())
+            val viewModel =
+                CalculatorViewModel(
+                    "norepinephrine",
+                    FakeDrugRepository(listOf(drug())),
+                    WeightStore(),
+                    FakeFolderRepository(),
+                )
             val job = launch { viewModel.state.collect {} }
 
             viewModel.onRateChange("120")
@@ -72,7 +85,13 @@ class CalculatorViewModelTest {
     @Test
     fun `dose above range is flagged`() =
         runTest(dispatcher) {
-            val viewModel = CalculatorViewModel("norepinephrine", FakeDrugRepository(listOf(drug())), WeightStore())
+            val viewModel =
+                CalculatorViewModel(
+                    "norepinephrine",
+                    FakeDrugRepository(listOf(drug())),
+                    WeightStore(),
+                    FakeFolderRepository(),
+                )
             val job = launch { viewModel.state.collect {} }
 
             viewModel.onDoseChange("5")

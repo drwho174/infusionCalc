@@ -38,6 +38,20 @@
     <string name="empty_body">Добавьте препарат с нужной концентрацией и единицами дозы</string>
     <string name="badge_mine">Мой</string>
     <string name="badge_favorite">Избранное</string>
+    <string name="folder_all">Все</string>
+    <string name="new_folder">Новая папка</string>
+    <string name="folders_manage_title">Папки</string>
+    <string name="folder_name">Название папки</string>
+    <string name="create">Создать</string>
+    <string name="folder_exists">Папка с таким названием уже есть</string>
+    <string name="folder_name_too_long">Слишком длинное название</string>
+    <string name="delete_folder_title">Удалить папку?</string>
+    <string name="delete_folder_body">Папка будет удалена. Препараты останутся в «Все».</string>
+    <string name="done">Готово</string>
+    <string name="folder_empty_title">В этой папке пока нет препаратов</string>
+    <string name="folder_empty_body">Добавьте препарат в папку с экрана расчёта</string>
+    <string name="folders_dialog_title">Папки препарата</string>
+    <string name="folders">Папки</string>
 
     <!-- calculator -->
     <string name="result_label">РЕЗУЛЬТАТ</string>

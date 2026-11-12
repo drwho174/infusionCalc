@@ -4,6 +4,7 @@ import com.drwho174.infusioncalc.domain.model.ConcentrationMode
 import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.DrugClass
+import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.domain.model.Verification
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
@@ -119,3 +120,8 @@ fun ConcentrationPreset.toEntity(): ConcentrationPresetEntity =
         isDefault = isDefault,
         label = label,
     )
+
+fun List<FolderEntity>.toDomain(): List<Folder> = map { Folder(id = it.id, name = it.name) }
+
+fun List<DrugFolderEntity>.toMembershipMap(): Map<String, Set<String>> =
+    groupBy { it.drugId }.mapValues { (_, rows) -> rows.map { it.folderId }.toSet() }
