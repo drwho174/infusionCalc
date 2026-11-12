@@ -7,22 +7,6 @@
     <ID>CyclomaticComplexMethod:CalculatorViewModel.kt$CalculatorViewModel$private fun buildState( drug: Drug?, weight: BigDecimal?, formState: CalculatorForm, ): CalculatorUiState</ID>
     <ID>CyclomaticComplexMethod:Drug.kt$ConcentrationPreset$fun concentrationIn(target: AmountUnit? = null): BigDecimal?</ID>
     <ID>CyclomaticComplexMethod:DrugCardScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DrugCardScreen( viewModel: DrugCardViewModel, onBack: () -&gt; Unit, onCalculate: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:AppNav.kt$@Composable fun AppNav( disclaimerAccepted: Boolean, onAcceptDisclaimer: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:CalculatorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CalculatorScreen( viewModel: CalculatorViewModel, onBack: () -&gt; Unit, onOpenCard: () -&gt; Unit, onEditDrug: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:CalculatorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun CalculatorContent( state: CalculatorUiState, viewModel: CalculatorViewModel, onBack: () -&gt; Unit, onOpenCard: () -&gt; Unit, onEditDrug: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:CalculatorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun LoadingScaffold(onBack: () -&gt; Unit)</ID>
-    <ID>FunctionNaming:CatalogScreen.kt$@Composable private fun DrugListItem( drug: Drug, isFavorite: Boolean, onOpen: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:CatalogScreen.kt$@Composable private fun EmptyCatalogState( filter: CatalogFilter, onAddDrug: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:CatalogScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun CatalogScreen( viewModel: CatalogViewModel, onOpenDrug: (String) -&gt; Unit, onAddDrug: () -&gt; Unit, onOpenSettings: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:DisclaimerScreen.kt$@Composable fun DisclaimerScreen(onAccept: () -&gt; Unit)</ID>
-    <ID>FunctionNaming:DrugCardScreen.kt$@Composable private fun PresetEditorDialog( initial: ConcentrationPreset?, onDismiss: () -&gt; Unit, onSave: (BigDecimal, AmountUnit, BigDecimal) -&gt; Unit, )</ID>
-    <ID>FunctionNaming:DrugCardScreen.kt$@Composable private fun SectionCard( title: String, content: @Composable () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:DrugCardScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DrugCardScreen( viewModel: DrugCardViewModel, onBack: () -&gt; Unit, onCalculate: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:EditorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun EditorScreen( viewModel: EditorViewModel, onBack: () -&gt; Unit, onSaved: (String) -&gt; Unit, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun ThemeOption( title: String, selected: Boolean, onSelect: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( viewModel: AppViewModel, onBack: () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:Theme.kt$@Composable fun InfusionCalcTheme( darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -&gt; Unit, )</ID>
-    <ID>FunctionNaming:WeightScreen.kt$@Composable fun WeightScreen( viewModel: WeightViewModel, onContinue: () -&gt; Unit, )</ID>
     <ID>LongMethod:AppNav.kt$@Composable fun AppNav( disclaimerAccepted: Boolean, onAcceptDisclaimer: () -&gt; Unit, )</ID>
     <ID>LongMethod:CalculatorScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun CalculatorContent( state: CalculatorUiState, viewModel: CalculatorViewModel, onBack: () -&gt; Unit, onOpenCard: () -&gt; Unit, onEditDrug: () -&gt; Unit, )</ID>
     <ID>LongMethod:CalculatorViewModel.kt$CalculatorViewModel$private fun buildState( drug: Drug?, weight: BigDecimal?, formState: CalculatorForm, ): CalculatorUiState</ID>

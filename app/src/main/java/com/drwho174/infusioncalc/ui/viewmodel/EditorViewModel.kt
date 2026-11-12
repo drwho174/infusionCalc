@@ -15,6 +15,7 @@ import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.MathContext
@@ -33,6 +34,7 @@ data class EditorUiState(
     val volume: String = "",
     val massUnit: AmountUnit = AmountUnit.MCG,
     val concentration: BigDecimal? = null,
+    val duplicateName: Boolean = false,
     val valid: Boolean = false,
 )
 
@@ -42,6 +44,7 @@ class EditorViewModel(
     private val repository: DrugRepository,
 ) : ViewModel() {
     private var existing: Drug? = null
+    private var existingDrugs: List<Drug> = emptyList()
 
     private val _state = MutableStateFlow(EditorUiState())
     val state: StateFlow<EditorUiState> = _state.asStateFlow()
@@ -50,6 +53,7 @@ class EditorViewModel(
         viewModelScope.launch {
             val loaded = initialDrugId?.let { repository.getDrug(it) }
             existing = loaded
+            existingDrugs = repository.observeDrugs().first()
             _state.value = if (loaded != null) prefilled(loaded) else derive(EditorUiState(isLoaded = true))
         }
     }
@@ -145,13 +149,35 @@ class EditorViewModel(
             } else {
                 null
             }
+        val duplicate = isDuplicateName(state.name)
         val valid =
             state.name.isNotBlank() &&
+                !duplicate &&
                 mass != null &&
                 mass.signum() > 0 &&
                 volume != null &&
                 volume.signum() > 0
-        return state.copy(concentration = concentration, valid = valid)
+        return state.copy(concentration = concentration, duplicateName = duplicate, valid = valid)
+    }
+
+    /**
+     * Новый препарат не должен совпадать по названию ни с одним существующим.
+     * Для правки/копии проверяются только пользовательские препараты: копия
+     * встроенного намеренно носит имя оригинала.
+     */
+    private fun isDuplicateName(rawName: String): Boolean {
+        val name = rawName.trim()
+        if (name.isEmpty()) return false
+        val current = existing
+        return if (current == null) {
+            existingDrugs.any { it.nameRu.trim().equals(name, ignoreCase = true) }
+        } else {
+            existingDrugs.any {
+                it.id != current.id &&
+                    !it.isBuiltIn &&
+                    it.nameRu.trim().equals(name, ignoreCase = true)
+            }
+        }
     }
 
     private fun prefilled(drug: Drug): EditorUiState {

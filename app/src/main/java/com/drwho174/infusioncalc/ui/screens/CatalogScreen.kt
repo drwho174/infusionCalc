@@ -11,10 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
-import com.drwho174.infusioncalc.ui.displayLabel
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.schemeLabel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogFilter
@@ -50,22 +50,13 @@ fun CatalogScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.catalog_title)) },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = stringResource(R.string.settings),
-                        )
-                    }
-                },
-            )
-        },
+        topBar = { CatalogTopBar(onOpenSettings) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = onAddDrug) {
-                Text(stringResource(R.string.add))
+            FloatingActionButton(onClick = onAddDrug) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.add_drug),
+                )
             }
         },
     ) { innerPadding ->
@@ -107,6 +98,22 @@ fun CatalogScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CatalogTopBar(onOpenSettings: () -> Unit) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.catalog_title)) },
+        actions = {
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                )
+            }
+        },
+    )
+}
+
 @Composable
 private fun EmptyCatalogState(
     filter: CatalogFilter,
@@ -142,17 +149,7 @@ private fun DrugListItem(
     onOpen: () -> Unit,
 ) {
     val scheme = drug.defaultScheme
-    val preset = drug.defaultPreset
-    val summary =
-        buildString {
-            if (scheme != null) {
-                append(schemeLabel(scheme.amountUnit, scheme.perKg, scheme.perTime))
-            }
-            if (preset != null) {
-                if (isNotEmpty()) append(" · ")
-                append(preset.displayLabel())
-            }
-        }
+    val summary = scheme?.let { schemeLabel(it.amountUnit, it.perKg, it.perTime) }.orEmpty()
     Row(
         modifier =
             Modifier
@@ -163,11 +160,13 @@ private fun DrugListItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(drug.localizedName(isEnglishUi()), style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (summary.isNotEmpty()) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         if (isFavorite) {
             Text(

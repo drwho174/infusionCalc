@@ -96,6 +96,7 @@
     <string name="volume">Объём, мл</string>
     <string name="concentration_preview">= %1$s %2$s/мл</string>
     <string name="concentration_empty">Укажите массу и объём</string>
+    <string name="duplicate_name">Препарат с таким названием уже есть</string>
 
     <!-- settings -->
     <string name="theme">Тема</string>

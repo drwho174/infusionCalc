@@ -19,6 +19,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -80,6 +81,27 @@ class EditorViewModelTest {
 
             assertNotNull(savedId)
             assertEquals("Тестовый", repository.getDrug(savedId!!)?.nameRu)
+        }
+
+    @Test
+    fun `new drug with an existing name is rejected`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository(listOf(builtIn()))
+            val viewModel = EditorViewModel(null, repository)
+            advanceUntilIdle()
+
+            viewModel.onNameChange("Норадреналин")
+            viewModel.onMassChange("4")
+            viewModel.onVolumeChange("1000")
+            advanceUntilIdle()
+
+            assertTrue(viewModel.state.value.duplicateName)
+            assertFalse(viewModel.state.value.valid)
+
+            var savedId: String? = null
+            viewModel.save { savedId = it }
+            advanceUntilIdle()
+            assertNull(savedId)
         }
 
     private fun builtIn() =

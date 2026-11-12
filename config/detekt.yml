@@ -1,0 +1,5 @@
+naming:
+  FunctionNaming:
+    # Compose-конвенция: имена @Composable-функций пишутся с заглавной буквы.
+    ignoreAnnotated:
+      - 'Composable'

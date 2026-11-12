@@ -96,6 +96,7 @@
     <string name="volume">Volume, mL</string>
     <string name="concentration_preview">= %1$s %2$s/mL</string>
     <string name="concentration_empty">Enter mass and volume</string>
+    <string name="duplicate_name">A drug with this name already exists</string>
 
     <!-- settings -->
     <string name="theme">Theme</string>

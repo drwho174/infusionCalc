@@ -1,5 +1,10 @@
 package com.drwho174.infusioncalc.ui
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -7,6 +12,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.drwho174.infusioncalc.ui.navigation.CalculatorKey
@@ -32,6 +38,16 @@ private val navigationConfig =
         serializersModule = navSerializersModule
     }
 
+/** Длительность перехода между экранами — половина стандартных 700 мс. */
+private const val TRANSITION_DURATION_MILLIS = 350
+
+private val screenTransition: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    ContentTransform(
+        targetContentEnter = fadeIn(tween(TRANSITION_DURATION_MILLIS)),
+        initialContentExit = fadeOut(tween(TRANSITION_DURATION_MILLIS)),
+    )
+}
+
 @Composable
 fun AppNav(
     disclaimerAccepted: Boolean,
@@ -43,6 +59,8 @@ fun AppNav(
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        transitionSpec = screenTransition,
+        popTransitionSpec = screenTransition,
         entryDecorators =
             listOf<NavEntryDecorator<NavKey>>(
                 rememberSaveableStateHolderNavEntryDecorator(),

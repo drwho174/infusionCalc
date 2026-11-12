@@ -92,6 +92,13 @@ fun EditorScreen(
                 value = state.name,
                 onValueChange = viewModel::onNameChange,
                 label = { Text(stringResource(R.string.name)) },
+                isError = state.duplicateName,
+                supportingText =
+                    if (state.duplicateName) {
+                        ({ Text(stringResource(R.string.duplicate_name)) })
+                    } else {
+                        null
+                    },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
