@@ -51,6 +51,7 @@
     <string name="folder_empty_title">No drugs in this folder yet</string>
     <string name="folder_empty_body">Add a drug to this folder from the calculation screen</string>
     <string name="folders_dialog_title">Drug folders</string>
+    <string name="folders_empty_hint">No folders yet. Create one below.</string>
     <string name="folders">Folders</string>
 
     <!-- calculator -->

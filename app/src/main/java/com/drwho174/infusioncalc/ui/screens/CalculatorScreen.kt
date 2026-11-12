@@ -322,7 +322,7 @@ private fun FolderPickerDialog(
             Column {
                 if (folders.isEmpty()) {
                     Text(
-                        stringResource(R.string.folder_empty_body),
+                        stringResource(R.string.folders_empty_hint),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
