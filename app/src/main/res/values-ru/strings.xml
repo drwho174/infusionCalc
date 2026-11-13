@@ -74,6 +74,11 @@
     <string name="edit_drug">Изменить препарат</string>
     <string name="card">Карточка</string>
     <string name="no_presets">Нет пресетов</string>
+    <string name="delete_drug_title">Удалить препарат?</string>
+    <string name="delete_drug_body">Препарат и его концентрации будут удалены. Действие необратимо.</string>
+    <string name="delete_builtin_title">Удаление невозможно</string>
+    <string name="delete_builtin_body">Встроенный препарат нельзя удалить.</string>
+    <string name="ok">ОК</string>
 
     <!-- drug card -->
     <string name="card_title_catalog">Каталог</string>

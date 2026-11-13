@@ -7,13 +7,8 @@ import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.domain.model.DoseScheme
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
-import com.drwho174.infusioncalc.domain.model.convertAmountUnit
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
 import com.drwho174.infusioncalc.domain.repository.FolderRepository
-import com.drwho174.infusioncalc.engine.AmountUnit
-import com.drwho174.infusioncalc.engine.CalcResult
-import com.drwho174.infusioncalc.engine.InfusionEngine
-import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +18,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import com.drwho174.infusioncalc.engine.DoseScheme as EngineDoseScheme
 
 enum class InputSource { DOSE, RATE }
 
@@ -44,26 +38,6 @@ data class CalculatorUiState(
     val belowRange: Boolean = false,
     val folders: List<Folder> = emptyList(),
     val drugFolderIds: Set<String> = emptySet(),
-)
-
-private data class CalculatorForm(
-    val doseText: String = "",
-    val rateText: String = "",
-    val source: InputSource = InputSource.DOSE,
-    val presetId: String? = null,
-)
-
-private data class ComputedValues(
-    val displayDose: String,
-    val displayRate: String,
-    val resultValue: BigDecimal?,
-    val resultIsRate: Boolean,
-    val doseValue: BigDecimal?,
-)
-
-private data class RangeFlags(
-    val above: Boolean,
-    val below: Boolean,
 )
 
 /** Состояние и расчёт экрана скорости инфузии. */
@@ -111,6 +85,16 @@ class CalculatorViewModel(
         }
     }
 
+    /** Удаляет пользовательский препарат; встроенные удалять нельзя. */
+    fun delete(onDeleted: () -> Unit) {
+        val drug = state.value.drug ?: return
+        if (drug.isBuiltIn) return
+        viewModelScope.launch {
+            repository.delete(drug.id)
+            onDeleted()
+        }
+    }
+
     private fun buildState(
         drug: Drug?,
         weight: BigDecimal?,
@@ -144,84 +128,6 @@ class CalculatorViewModel(
             belowRange = range.below,
             folders = folders,
             drugFolderIds = drugFolderIds,
-        )
-    }
-
-    private fun isUnitMismatch(
-        preset: ConcentrationPreset?,
-        schemeUnit: AmountUnit?,
-    ): Boolean =
-        preset?.amountUnit?.let { presetUnit ->
-            schemeUnit?.let { convertAmountUnit(BigDecimal.ONE, presetUnit, it) == null }
-        } ?: false
-
-    private fun computeValues(
-        formState: CalculatorForm,
-        scheme: DoseScheme?,
-        concentration: BigDecimal?,
-        weight: BigDecimal?,
-    ): ComputedValues {
-        val computed = computeRaw(formState, scheme?.toEngine(), concentration, weight)
-        val fromDose = formState.source == InputSource.DOSE
-        val computedDose = computed?.takeIf { !it.first }?.second
-        val computedRate = computed?.takeIf { it.first }?.second
-        val doseValue = if (fromDose) formState.doseText.toBigDecimalOrNull() else computedDose
-        val displayDose =
-            if (fromDose) {
-                formState.doseText
-            } else {
-                computedDose?.let { InfusionEngine.formatDoseDisplay(it) }?.display() ?: ""
-            }
-        val displayRate =
-            if (!fromDose) {
-                formState.rateText
-            } else {
-                computedRate?.let { InfusionEngine.formatRate(it) }?.display() ?: ""
-            }
-        val resultValue =
-            computed?.let {
-                if (it.first) InfusionEngine.formatRate(it.second) else InfusionEngine.formatDoseDisplay(it.second)
-            }
-        return ComputedValues(
-            displayDose = displayDose,
-            displayRate = displayRate,
-            resultValue = resultValue,
-            resultIsRate = computed?.first == true,
-            doseValue = doseValue,
-        )
-    }
-
-    private fun computeRaw(
-        formState: CalculatorForm,
-        engineScheme: EngineDoseScheme?,
-        concentration: BigDecimal?,
-        weight: BigDecimal?,
-    ): Pair<Boolean, BigDecimal>? {
-        if (concentration == null || engineScheme == null) return null
-        return if (formState.source == InputSource.DOSE) {
-            formState.doseText.toBigDecimalOrNull()?.let { dose ->
-                (InfusionEngine.rate(dose, engineScheme, weight, concentration) as? CalcResult.Success)
-                    ?.value
-                    ?.let { true to it }
-            }
-        } else {
-            formState.rateText.toBigDecimalOrNull()?.let { rate ->
-                (InfusionEngine.dose(rate, engineScheme, weight, concentration) as? CalcResult.Success)
-                    ?.value
-                    ?.let { false to it }
-            }
-        }
-    }
-
-    private fun computeRange(
-        scheme: DoseScheme?,
-        doseValue: BigDecimal?,
-    ): RangeFlags {
-        val doseMin = scheme?.doseMin
-        val doseMax = scheme?.doseMax
-        return RangeFlags(
-            above = doseValue != null && doseMax != null && doseValue > doseMax,
-            below = doseValue != null && doseMin != null && doseValue < doseMin,
         )
     }
 }

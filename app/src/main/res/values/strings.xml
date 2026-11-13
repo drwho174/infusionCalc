@@ -74,6 +74,11 @@
     <string name="edit_drug">Edit drug</string>
     <string name="card">Details</string>
     <string name="no_presets">No presets</string>
+    <string name="delete_drug_title">Delete drug?</string>
+    <string name="delete_drug_body">The drug and its concentrations will be deleted. This cannot be undone.</string>
+    <string name="delete_builtin_title">Cannot delete</string>
+    <string name="delete_builtin_body">Built-in drugs cannot be deleted.</string>
+    <string name="ok">OK</string>
 
     <!-- drug card -->
     <string name="card_title_catalog">Catalog</string>

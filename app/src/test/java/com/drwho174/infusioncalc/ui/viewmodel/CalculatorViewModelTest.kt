@@ -20,6 +20,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -98,6 +100,41 @@ class CalculatorViewModelTest {
             advanceUntilIdle()
 
             assertTrue(viewModel.state.value.aboveRange)
+            job.cancel()
+        }
+
+    @Test
+    fun `delete removes a user-created drug`() =
+        runTest(dispatcher) {
+            val userDrug = drug().copy(id = "custom", isBuiltIn = false)
+            val repository = FakeDrugRepository(listOf(userDrug))
+            val viewModel = CalculatorViewModel("custom", repository, WeightStore(), FakeFolderRepository())
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            var deleted = false
+            viewModel.delete { deleted = true }
+            advanceUntilIdle()
+
+            assertTrue(deleted)
+            assertNull(repository.getDrug("custom"))
+            job.cancel()
+        }
+
+    @Test
+    fun `delete does not remove a built-in drug`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository(listOf(drug()))
+            val viewModel = CalculatorViewModel("norepinephrine", repository, WeightStore(), FakeFolderRepository())
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            var deleted = false
+            viewModel.delete { deleted = true }
+            advanceUntilIdle()
+
+            assertFalse(deleted)
+            assertNotNull(repository.getDrug("norepinephrine"))
             job.cancel()
         }
 

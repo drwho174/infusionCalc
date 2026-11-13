@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -88,6 +89,8 @@ private fun CalculatorContent(
 ) {
     val drug = state.drug ?: return
     var showFolders by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBuiltInDeleteError by remember { mutableStateOf(false) }
     val scheme = state.scheme
     val preset = state.preset
     val unitLabel = scheme?.let { schemeLabel(it.amountUnit, it.perKg, it.perTime) } ?: ""
@@ -129,6 +132,16 @@ private fun CalculatorContent(
                         Icon(
                             imageVector = Icons.Filled.Info,
                             contentDescription = stringResource(R.string.card),
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            if (drug.isBuiltIn) showBuiltInDeleteError = true else showDeleteConfirm = true
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = stringResource(R.string.delete),
                         )
                     }
                 },
@@ -299,6 +312,42 @@ private fun CalculatorContent(
                 showFolders = false
             },
             onDismiss = { showFolders = false },
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text(stringResource(R.string.delete_drug_title)) },
+            text = { Text(stringResource(R.string.delete_drug_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        viewModel.delete(onDeleted = onBack)
+                    },
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (showBuiltInDeleteError) {
+        AlertDialog(
+            onDismissRequest = { showBuiltInDeleteError = false },
+            title = { Text(stringResource(R.string.delete_builtin_title)) },
+            text = { Text(stringResource(R.string.delete_builtin_body)) },
+            confirmButton = {
+                TextButton(onClick = { showBuiltInDeleteError = false }) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
         )
     }
 }
