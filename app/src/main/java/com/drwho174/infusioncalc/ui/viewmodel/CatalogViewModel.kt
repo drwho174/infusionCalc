@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 
 data class CatalogUiState(
     val filtered: List<Drug> = emptyList(),
+    /** Препараты, которых ещё нет в выбранной папке (для диалога добавления). */
+    val availableForFolder: List<Drug> = emptyList(),
     val folders: List<Folder> = emptyList(),
     val selectedFolderId: String? = null,
     val query: String = "",
@@ -46,8 +48,15 @@ class CatalogViewModel(
                         currentFolder == null || memberships[drug.id]?.contains(currentFolder) == true
                     matchesQuery && matchesFolder
                 }
+            val availableForFolder =
+                if (currentFolder == null) {
+                    emptyList()
+                } else {
+                    drugs.filter { memberships[it.id]?.contains(currentFolder) != true }
+                }
             CatalogUiState(
                 filtered = filtered,
+                availableForFolder = availableForFolder,
                 folders = folders,
                 selectedFolderId = currentFolder,
                 query = currentQuery,
@@ -60,6 +69,14 @@ class CatalogViewModel(
 
     fun onFolderSelected(folderId: String?) {
         selectedFolderId.value = folderId
+    }
+
+    fun onAddDrugsToFolder(
+        folderId: String,
+        drugIds: Set<String>,
+    ) {
+        if (drugIds.isEmpty()) return
+        viewModelScope.launch { folderRepository.addDrugsToFolder(folderId, drugIds) }
     }
 
     fun onCreateFolder(name: String) {

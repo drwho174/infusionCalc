@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -59,6 +60,49 @@ class CatalogViewModelTest {
             viewModel.onFolderSelected(null)
             advanceUntilIdle()
             assertEquals(2, viewModel.state.value.filtered.size)
+
+            job.cancel()
+        }
+
+    @Test
+    fun `adds drugs to selected folder`() =
+        runTest(dispatcher) {
+            val repository =
+                FakeDrugRepository(
+                    listOf(
+                        Drug(id = "a", nameRu = "Адреналин", isBuiltIn = true),
+                        Drug(id = "b", nameRu = "Допамин", isBuiltIn = true),
+                    ),
+                )
+            val folderRepository = FakeFolderRepository(listOf(Folder(id = "f1", name = "ОРИТ")))
+            val viewModel = CatalogViewModel(repository, folderRepository)
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            viewModel.onFolderSelected("f1")
+            advanceUntilIdle()
+            assertTrue(
+                viewModel.state.value.filtered
+                    .isEmpty(),
+            )
+            assertEquals(
+                listOf("a", "b"),
+                viewModel.state.value.availableForFolder
+                    .map { it.id },
+            )
+
+            viewModel.onAddDrugsToFolder("f1", setOf("a"))
+            advanceUntilIdle()
+            assertEquals(
+                listOf("a"),
+                viewModel.state.value.filtered
+                    .map { it.id },
+            )
+            assertEquals(
+                listOf("b"),
+                viewModel.state.value.availableForFolder
+                    .map { it.id },
+            )
 
             job.cancel()
         }

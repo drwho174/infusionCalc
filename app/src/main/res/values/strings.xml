@@ -41,11 +41,11 @@
     <string name="delete_folder_title">Delete folder?</string>
     <string name="delete_folder_body">The folder will be deleted. Drugs stay in All.</string>
     <string name="done">Done</string>
-    <string name="folder_empty_title">No drugs in this folder yet</string>
-    <string name="folder_empty_body">Add a drug to this folder from the calculation screen</string>
     <string name="folders_dialog_title">Drug folders</string>
     <string name="folders_empty_hint">No folders yet. Create one below.</string>
     <string name="folders">Folders</string>
+    <string name="add_drugs_to_folder_title">Add to folder \"%1$s\"</string>
+    <string name="folder_all_drugs_added">All drugs are already in this folder</string>
 
     <!-- calculator -->
     <string name="result_label">RESULT</string>

@@ -1,5 +1,6 @@
 package com.drwho174.infusioncalc.data
 
+import com.drwho174.infusioncalc.data.local.DrugFolderEntity
 import com.drwho174.infusioncalc.data.local.FolderDao
 import com.drwho174.infusioncalc.data.local.FolderEntity
 import com.drwho174.infusioncalc.data.local.toDomain
@@ -54,5 +55,15 @@ class RoomFolderRepository(
         folderIds: Set<String>,
     ) = withContext(Dispatchers.IO) {
         dao.setDrugFolders(drugId, folderIds)
+    }
+
+    override suspend fun addDrugsToFolder(
+        folderId: String,
+        drugIds: Set<String>,
+    ) = withContext(Dispatchers.IO) {
+        if (drugIds.isEmpty()) return@withContext
+        dao.insertMemberships(
+            drugIds.map { drugId -> DrugFolderEntity(drugId = drugId, folderId = folderId) },
+        )
     }
 }

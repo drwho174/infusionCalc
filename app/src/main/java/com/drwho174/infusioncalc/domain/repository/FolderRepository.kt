@@ -20,4 +20,10 @@ interface FolderRepository {
         drugId: String,
         folderIds: Set<String>,
     )
+
+    /** Добавляет препараты в папку; уже существующие связи сохраняются. */
+    suspend fun addDrugsToFolder(
+        folderId: String,
+        drugIds: Set<String>,
+    )
 }

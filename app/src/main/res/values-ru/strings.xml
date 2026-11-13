@@ -41,11 +41,11 @@
     <string name="delete_folder_title">Удалить папку?</string>
     <string name="delete_folder_body">Папка будет удалена. Препараты останутся в «Все».</string>
     <string name="done">Готово</string>
-    <string name="folder_empty_title">В этой папке пока нет препаратов</string>
-    <string name="folder_empty_body">Добавьте препарат в папку с экрана расчёта</string>
     <string name="folders_dialog_title">Папки препарата</string>
     <string name="folders_empty_hint">Папок пока нет. Создайте ниже.</string>
     <string name="folders">Папки</string>
+    <string name="add_drugs_to_folder_title">Добавить в папку «%1$s»</string>
+    <string name="folder_all_drugs_added">Все препараты уже в этой папке</string>
 
     <!-- calculator -->
     <string name="result_label">РЕЗУЛЬТАТ</string>

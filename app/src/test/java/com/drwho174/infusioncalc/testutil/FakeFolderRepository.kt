@@ -42,4 +42,15 @@ class FakeFolderRepository(
     ) {
         memberships.value = memberships.value + (drugId to folderIds)
     }
+
+    override suspend fun addDrugsToFolder(
+        folderId: String,
+        drugIds: Set<String>,
+    ) {
+        if (drugIds.isEmpty()) return
+        memberships.value =
+            memberships.value.toMutableMap().apply {
+                drugIds.forEach { drugId -> this[drugId] = this[drugId].orEmpty() + folderId }
+            }
+    }
 }

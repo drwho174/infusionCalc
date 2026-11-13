@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
+import com.drwho174.infusioncalc.ui.components.AddDrugsToFolderDialog
 import com.drwho174.infusioncalc.ui.components.FolderNameField
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogUiState
@@ -58,6 +59,7 @@ fun CatalogScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showFolderDialog by remember { mutableStateOf(false) }
+    var showAddDrugsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = { CatalogTopBar(onOpenSettings) },
@@ -83,7 +85,12 @@ fun CatalogScreen(
                 onSelect = viewModel::onFolderSelected,
                 onNewFolder = { showFolderDialog = true },
             )
-            CatalogBody(state = state, onOpenDrug = onOpenDrug, onAddDrug = onAddDrug)
+            CatalogBody(
+                state = state,
+                onOpenDrug = onOpenDrug,
+                onAddDrug = onAddDrug,
+                onAddToFolder = { showAddDrugsDialog = true },
+            )
         }
     }
 
@@ -93,6 +100,19 @@ fun CatalogScreen(
             onCreate = viewModel::onCreateFolder,
             onDelete = viewModel::onDeleteFolder,
             onDismiss = { showFolderDialog = false },
+        )
+    }
+
+    val selectedFolder = state.selectedFolderId?.let { id -> state.folders.firstOrNull { it.id == id } }
+    if (showAddDrugsDialog && selectedFolder != null) {
+        AddDrugsToFolderDialog(
+            folderName = selectedFolder.name,
+            drugs = state.availableForFolder,
+            onDismiss = { showAddDrugsDialog = false },
+            onConfirm = { drugIds ->
+                viewModel.onAddDrugsToFolder(selectedFolder.id, drugIds)
+                showAddDrugsDialog = false
+            },
         )
     }
 }
@@ -136,14 +156,21 @@ private fun CatalogBody(
     state: CatalogUiState,
     onOpenDrug: (String) -> Unit,
     onAddDrug: () -> Unit,
+    onAddToFolder: () -> Unit,
 ) {
-    if (state.filtered.isEmpty()) {
-        EmptyCatalogState(isFolder = state.selectedFolderId != null, onAddDrug = onAddDrug)
+    val folderSelected = state.selectedFolderId != null
+    if (state.filtered.isEmpty() && !folderSelected) {
+        EmptyCatalogState(onAddDrug = onAddDrug)
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(state.filtered, key = { it.id }) { drug ->
                 DrugListItem(drug = drug, onOpen = { onOpenDrug(drug.id) })
                 HorizontalDivider()
+            }
+            if (folderSelected) {
+                item(key = "add_to_folder") {
+                    AddDrugToFolderItem(onClick = onAddToFolder)
+                }
             }
         }
     }
@@ -166,31 +193,44 @@ private fun CatalogTopBar(onOpenSettings: () -> Unit) {
 }
 
 @Composable
-private fun EmptyCatalogState(
-    isFolder: Boolean,
-    onAddDrug: () -> Unit,
-) {
+private fun EmptyCatalogState(onAddDrug: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text =
-                    stringResource(
-                        if (isFolder) R.string.folder_empty_title else R.string.empty_all_title,
-                    ),
+                text = stringResource(R.string.empty_all_title),
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text =
-                    stringResource(
-                        if (isFolder) R.string.folder_empty_body else R.string.empty_body,
-                    ),
+                text = stringResource(R.string.empty_body),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp),
             )
-            if (!isFolder) {
-                TextButton(onClick = onAddDrug) { Text(stringResource(R.string.add_drug)) }
-            }
+            TextButton(onClick = onAddDrug) { Text(stringResource(R.string.add_drug)) }
         }
+    }
+}
+
+@Composable
+private fun AddDrugToFolderItem(onClick: () -> Unit) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(R.string.add_drug),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 
