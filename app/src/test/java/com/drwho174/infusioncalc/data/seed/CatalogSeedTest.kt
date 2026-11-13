@@ -22,10 +22,11 @@ class CatalogSeedTest {
             "nitroglycerin",
             "dopamine",
             "midazolam",
+            "fentanyl",
         ).forEach { id ->
             assertTrue("missing $id", id in ids)
         }
-        assertEquals(10, drugs.size)
+        assertEquals(11, drugs.size)
     }
 
     @Test
@@ -44,10 +45,12 @@ class CatalogSeedTest {
             drug.schemes.forEach { scheme ->
                 val min = scheme.doseMin
                 val max = scheme.doseMax
-                assertNotNull("${drug.id}: no min", min)
-                assertNotNull("${drug.id}: no max", max)
-                assertTrue("${drug.id}: min < max", min!! < max!!)
-                assertTrue("${drug.id}: min > 0", min.signum() > 0)
+                if (min != null || max != null) {
+                    assertNotNull("${drug.id}: no min", min)
+                    assertNotNull("${drug.id}: no max", max)
+                    assertTrue("${drug.id}: min < max", min!! < max!!)
+                    assertTrue("${drug.id}: min > 0", min.signum() > 0)
+                }
             }
         }
     }

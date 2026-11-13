@@ -5,6 +5,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
+import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,7 +22,7 @@ abstract class DrugDao {
     @Query("SELECT * FROM drugs WHERE id = :id")
     abstract suspend fun getDrug(id: String): DrugWithDetails?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     abstract suspend fun insertDrug(drug: DrugEntity)
 
     @Query("DELETE FROM dose_schemes WHERE drugId = :drugId")

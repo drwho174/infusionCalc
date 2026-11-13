@@ -16,15 +16,15 @@ import java.math.BigDecimal
  * и инструкцией. Пользователь может скопировать карточку в «Мои» и изменить.
  */
 object CatalogSeed {
-    const val CATALOG_VERSION = 1
+    const val CATALOG_VERSION = 2
 
     private fun scheme(
         drugId: String,
         unit: AmountUnit,
         perKg: Boolean,
         perTime: TimeBase,
-        min: String,
-        max: String,
+        min: String? = null,
+        max: String? = null,
         indication: String? = null,
     ) = DoseScheme(
         id = "${drugId}_scheme",
@@ -33,8 +33,8 @@ object CatalogSeed {
         perKg = perKg,
         perTime = perTime,
         indication = indication,
-        doseMin = BigDecimal(min),
-        doseMax = BigDecimal(max),
+        doseMin = min?.let { BigDecimal(it) },
+        doseMax = max?.let { BigDecimal(it) },
         schemeOrder = 0,
     )
 
@@ -110,10 +110,11 @@ object CatalogSeed {
                 scheme = scheme("norepinephrine", AmountUnit.MCG, perKg = true, TimeBase.PER_MINUTE, "0.01", "3"),
                 presets =
                     listOf(
-                        massPreset("norepinephrine", 1, "4", AmountUnit.MG, "1000", default = true),
-                        massPreset("norepinephrine", 2, "8", AmountUnit.MG, "250"),
-                        massPreset("norepinephrine", 3, "16", AmountUnit.MG, "250"),
-                        massPreset("norepinephrine", 4, "4", AmountUnit.MG, "250"),
+                        massPreset("norepinephrine", 1, "2", AmountUnit.MG, "20", default = true),
+                        massPreset("norepinephrine", 2, "4", AmountUnit.MG, "20"),
+                        massPreset("norepinephrine", 3, "4", AmountUnit.MG, "50"),
+                        massPreset("norepinephrine", 4, "8", AmountUnit.MG, "50"),
+                        massPreset("norepinephrine", 5, "16", AmountUnit.MG, "50"),
                     ),
                 notes = "Титрация по АД; экстравазация → некроз (антидот фентоламин).",
             ),
@@ -127,10 +128,9 @@ object CatalogSeed {
                 scheme = scheme("epinephrine", AmountUnit.MCG, perKg = true, TimeBase.PER_MINUTE, "0.01", "0.5"),
                 presets =
                     listOf(
-                        massPreset("epinephrine", 1, "1", AmountUnit.MG, "1000", default = true),
-                        massPreset("epinephrine", 2, "1", AmountUnit.MG, "250"),
-                        massPreset("epinephrine", 3, "1", AmountUnit.MG, "50"),
-                        massPreset("epinephrine", 4, "5", AmountUnit.MG, "500"),
+                        massPreset("epinephrine", 1, "1", AmountUnit.MG, "20", default = true),
+                        massPreset("epinephrine", 2, "3", AmountUnit.MG, "20"),
+                        massPreset("epinephrine", 3, "5", AmountUnit.MG, "20"),
                     ),
                 notes = "Инфузия для непрерывного введения; болюсные дозы — по протоколу.",
             ),
@@ -144,9 +144,8 @@ object CatalogSeed {
                 scheme = scheme("dobutamine", AmountUnit.MCG, perKg = true, TimeBase.PER_MINUTE, "2", "20"),
                 presets =
                     listOf(
-                        massPreset("dobutamine", 1, "250", AmountUnit.MG, "250", default = true),
-                        massPreset("dobutamine", 2, "250", AmountUnit.MG, "500"),
-                        massPreset("dobutamine", 3, "500", AmountUnit.MG, "250"),
+                        massPreset("dobutamine", 1, "250", AmountUnit.MG, "20", default = true),
+                        massPreset("dobutamine", 2, "250", AmountUnit.MG, "50"),
                     ),
                 notes = "Инотропная поддержка; следить за тахикардией и аритмией.",
             ),
@@ -160,9 +159,7 @@ object CatalogSeed {
                 scheme = scheme("levosimendan", AmountUnit.MCG, perKg = true, TimeBase.PER_MINUTE, "0.05", "0.2"),
                 presets =
                     listOf(
-                        massPreset("levosimendan", 1, "12.5", AmountUnit.MG, "500", default = true),
-                        massPreset("levosimendan", 2, "12.5", AmountUnit.MG, "100"),
-                        massPreset("levosimendan", 3, "12.5", AmountUnit.MG, "50"),
+                        massPreset("levosimendan", 1, "12.5", AmountUnit.MG, "50", default = true),
                     ),
                 notes = "Нагрузочная доза — отдельно по протоколу; возможна гипотензия.",
             ),
@@ -176,8 +173,8 @@ object CatalogSeed {
                 scheme = scheme("propofol", AmountUnit.MG, perKg = true, TimeBase.PER_HOUR, "0.5", "4"),
                 presets =
                     listOf(
-                        readyPreset("propofol", 1, "10", AmountUnit.MG, default = true),
-                        readyPreset("propofol", 2, "20", AmountUnit.MG),
+                        massPreset("propofol", 1, "200", AmountUnit.MG, "20", default = true),
+                        massPreset("propofol", 2, "500", AmountUnit.MG, "50"),
                     ),
                 notes = "1% = 10 мг/мл, 2% = 20 мг/мл. Седация 1–4 мг/кг/ч.",
             ),
@@ -191,9 +188,8 @@ object CatalogSeed {
                 scheme = scheme("dexmedetomidine", AmountUnit.MCG, perKg = true, TimeBase.PER_HOUR, "0.2", "1.4"),
                 presets =
                     listOf(
-                        massPreset("dexmedetomidine", 1, "200", AmountUnit.MCG, "50", default = true),
-                        massPreset("dexmedetomidine", 2, "200", AmountUnit.MCG, "100"),
-                        readyPreset("dexmedetomidine", 3, "100", AmountUnit.MCG),
+                        massPreset("dexmedetomidine", 1, "200", AmountUnit.MCG, "20", default = true),
+                        massPreset("dexmedetomidine", 2, "400", AmountUnit.MCG, "20"),
                     ),
                 notes = "Седация без глубокой депрессии дыхания; брадикардия и гипотензия.",
             ),
@@ -207,9 +203,8 @@ object CatalogSeed {
                 scheme = scheme("rocuronium", AmountUnit.MG, perKg = true, TimeBase.PER_HOUR, "0.3", "0.6"),
                 presets =
                     listOf(
-                        massPreset("rocuronium", 1, "50", AmountUnit.MG, "50", default = true),
-                        massPreset("rocuronium", 2, "200", AmountUnit.MG, "50"),
-                        readyPreset("rocuronium", 3, "10", AmountUnit.MG),
+                        massPreset("rocuronium", 1, "200", AmountUnit.MG, "20", default = true),
+                        massPreset("rocuronium", 2, "100", AmountUnit.MG, "20"),
                     ),
                 notes = "Недеполяризующий миорелаксант; инфузия при длительной релаксации.",
             ),
@@ -223,10 +218,8 @@ object CatalogSeed {
                 scheme = scheme("nitroglycerin", AmountUnit.MCG, perKg = false, TimeBase.PER_MINUTE, "5", "200"),
                 presets =
                     listOf(
-                        massPreset("nitroglycerin", 1, "10", AmountUnit.MG, "100", default = true),
-                        massPreset("nitroglycerin", 2, "25", AmountUnit.MG, "250"),
-                        massPreset("nitroglycerin", 3, "50", AmountUnit.MG, "500"),
-                        readyPreset("nitroglycerin", 4, "5", AmountUnit.MG),
+                        readyPreset("nitroglycerin", 1, "10", AmountUnit.MG, default = true),
+                        readyPreset("nitroglycerin", 2, "5", AmountUnit.MG),
                     ),
                 notes = "Титрация по АД; толерантность при длительной инфузии.",
             ),
@@ -240,9 +233,8 @@ object CatalogSeed {
                 scheme = scheme("dopamine", AmountUnit.MCG, perKg = true, TimeBase.PER_MINUTE, "1", "20"),
                 presets =
                     listOf(
-                        massPreset("dopamine", 1, "200", AmountUnit.MG, "250", default = true),
-                        massPreset("dopamine", 2, "200", AmountUnit.MG, "500"),
-                        massPreset("dopamine", 3, "400", AmountUnit.MG, "250"),
+                        massPreset("dopamine", 1, "200", AmountUnit.MG, "20", default = true),
+                        massPreset("dopamine", 2, "200", AmountUnit.MG, "50"),
                     ),
                 notes = "1–3 мкг/кг/мин — «почечная», 2–10 — инотропная, 10–20 — вазопрессорная.",
             ),
@@ -256,12 +248,25 @@ object CatalogSeed {
                 scheme = scheme("midazolam", AmountUnit.MG, perKg = true, TimeBase.PER_HOUR, "0.02", "0.1"),
                 presets =
                     listOf(
-                        massPreset("midazolam", 1, "50", AmountUnit.MG, "50", default = true),
-                        massPreset("midazolam", 2, "100", AmountUnit.MG, "100"),
-                        massPreset("midazolam", 3, "25", AmountUnit.MG, "250"),
-                        readyPreset("midazolam", 4, "5", AmountUnit.MG),
+                        massPreset("midazolam", 1, "15", AmountUnit.MG, "20", default = true),
+                        massPreset("midazolam", 2, "45", AmountUnit.MG, "20"),
                     ),
                 notes = "Седация; риск угнетения дыхания, особенно с опиоидами.",
+            ),
+            drug(
+                id = "fentanyl",
+                nameRu = "Фентанил",
+                nameEn = "Fentanyl",
+                drugClass = DrugClass.OTHER,
+                highAlert = true,
+                route = "в/в",
+                scheme = scheme("fentanyl", AmountUnit.MCG, perKg = true, TimeBase.PER_HOUR),
+                presets =
+                    listOf(
+                        massPreset("fentanyl", 1, "1", AmountUnit.MG, "20", default = true),
+                        massPreset("fentanyl", 2, "0.5", AmountUnit.MG, "20"),
+                    ),
+                notes = "Опиоидный анальгетик; риск угнетения дыхания, особенно с бензодиазепинами.",
             ),
         )
 }
