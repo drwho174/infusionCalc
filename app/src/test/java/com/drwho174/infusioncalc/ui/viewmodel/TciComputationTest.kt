@@ -83,6 +83,18 @@ class TciComputationTest {
     }
 
     @Test
+    fun `target warning follows the active phase`() {
+        // Cp 7 в индукции (диапазон 4–8) — без предупреждения
+        val induction = buildTciState(marshForm("7"))
+        assertNull(induction.blocking)
+        assertTrue(TciWarning.TARGET_OUT_OF_RANGE !in induction.warnings)
+        // Cp 7 в поддержании (диапазон ~3–6) — с предупреждением
+        val maintenance = buildTciState(marshForm("7").copy(inductionDone = true))
+        assertNull(maintenance.blocking)
+        assertTrue(TciWarning.TARGET_OUT_OF_RANGE in maintenance.warnings)
+    }
+
+    @Test
     fun `weight out of technical range blocks`() {
         assertEquals(TciBlocking.WEIGHT, buildTciState(marshForm("4", weight = "301")).blocking)
         assertEquals(TciBlocking.WEIGHT, buildTciState(marshForm("4", weight = "0")).blocking)

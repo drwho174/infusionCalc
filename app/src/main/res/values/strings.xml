@@ -179,6 +179,7 @@
     <string name="tci_minutes">min</string>
     <string name="tci_wake_threshold">Threshold</string>
     <string name="tci_wake_time">Time</string>
+    <string name="tci_wake_prediction">Prediction: if the infusion is stopped now</string>
     <string name="tci_wake_hint">after stopping the infusion, until the awakening threshold</string>
     <string name="tci_blocking_weight">Enter the patient weight (kg).</string>
     <string name="tci_blocking_height">Enter the height (cm). Schnider requires it.</string>
@@ -188,8 +189,8 @@
     <string name="tci_warn_weight">Check the weight: %1$s kg looks unusual.</string>
     <string name="tci_warn_height">Check the height: %1$s cm looks unusual.</string>
     <string name="tci_warn_age">Check the age: %1$s years.</string>
-    <string name="tci_warn_bmi">BMI %1$s is outside the Schnider range (male &lt; 42, female &lt; 35 kg/m²).</string>
-    <string name="tci_warn_target">Target %1$s mcg/mL is outside the recommended range.</string>
+    <string name="tci_warn_bmi">BMI %1$s is outside the Schnider range (male &lt; 42, female &lt; 35 kg/m²). Choose Marsh or check the data.</string>
+    <string name="tci_warn_target">Target concentration %1$s mcg/mL is outside the recommended range (%2$s). Check the phase and target.</string>
     <string name="tci_confirm_reset">Changing %1$s will reset the calculation and stage marks. Continue?</string>
     <string name="tci_continue">Continue</string>
     <string name="tci_review_title">Check before induction</string>

@@ -206,16 +206,28 @@ private fun computeWarnings(
         warnings.add(TciWarning.WEIGHT_UNUSUAL)
     }
 
-    val targetOut =
-        if (form.mode == TargetMode.PLASMA) {
-            target < BigDecimal("3") || target > BigDecimal("8")
-        } else {
-            target < BigDecimal("2.5") || target > BigDecimal("4")
-        }
-    if (targetOut) warnings.add(TciWarning.TARGET_OUT_OF_RANGE)
+    val (targetLow, targetHigh) = targetPhaseRange(form)
+    if (target < targetLow || target > targetHigh) {
+        warnings.add(TciWarning.TARGET_OUT_OF_RANGE)
+    }
 
     return warnings
 }
+
+/**
+ * Рекомендуемый диапазон цели для активного этапа (VAL-TCI-05):
+ * индукция Cp 4–8, поддержание Cp ~3–6; Ce 2.5–4 в обеих фазах.
+ */
+internal fun targetPhaseRange(form: TciForm): Pair<BigDecimal, BigDecimal> =
+    if (form.mode == TargetMode.PLASMA) {
+        if (!form.inductionDone) {
+            BigDecimal("4") to BigDecimal("8")
+        } else {
+            BigDecimal("3") to BigDecimal("6")
+        }
+    } else {
+        BigDecimal("2.5") to BigDecimal("4")
+    }
 
 private fun buildRateTable(simulation: TciSimulation): List<RateTableRow> =
     (300..TciForm.HORIZON_SECONDS step 300)

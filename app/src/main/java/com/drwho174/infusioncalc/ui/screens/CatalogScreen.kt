@@ -212,11 +212,11 @@ private fun TciCatalogItem(onOpen: () -> Unit) {
         Text(
             text = stringResource(R.string.tci_badge),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.onErrorContainer,
             modifier =
                 Modifier
                     .background(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        color = MaterialTheme.colorScheme.errorContainer,
                         shape = MaterialTheme.shapes.small,
                     )
                     .padding(horizontal = 8.dp, vertical = 2.dp),

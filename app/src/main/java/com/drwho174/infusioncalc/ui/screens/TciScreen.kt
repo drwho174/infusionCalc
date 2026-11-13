@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,27 +40,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.tci.Sex
 import com.drwho174.infusioncalc.tci.SimStep
 import com.drwho174.infusioncalc.tci.TargetMode
 import com.drwho174.infusioncalc.tci.TciModel
+import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.viewmodel.TciBlocking
 import com.drwho174.infusioncalc.ui.viewmodel.TciComputed
 import com.drwho174.infusioncalc.ui.viewmodel.TciForm
 import com.drwho174.infusioncalc.ui.viewmodel.TciUiState
 import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.TciWarning
+import com.drwho174.infusioncalc.ui.viewmodel.targetPhaseRange
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +80,9 @@ fun TciScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val form = state.form
+    val blocking = state.blocking
+    val computed = state.computed
+    val warnings = state.warnings
 
     var showReview by remember { mutableStateOf(false) }
     var pendingModel by remember { mutableStateOf<TciModel?>(null) }
@@ -83,7 +97,24 @@ fun TciScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.tci_title)) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.tci_title))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.tci_badge),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier =
+                                Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.errorContainer,
+                                        shape = MaterialTheme.shapes.small,
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -94,7 +125,7 @@ fun TciScreen(
                 },
                 actions = {
                     TextButton(onClick = { showReview = true }) {
-                        Text(stringResource(R.string.tci_review))
+                        Text(stringResource(R.string.tci_review), color = MaterialTheme.colorScheme.error)
                     }
                 },
             )
@@ -134,24 +165,24 @@ fun TciScreen(
             Spacer(Modifier.height(12.dp))
             StageSection(form = form, viewModel = viewModel)
 
-            if (state.blocking != null) {
+            if (blocking != null) {
                 Spacer(Modifier.height(12.dp))
-                BlockingCard(blocking = state.blocking)
+                BlockingCard(blocking = blocking)
             }
 
-            if (state.warnings.isNotEmpty()) {
+            if (warnings.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                WarningCard(warnings = state.warnings, form = form, computed = state.computed)
+                WarningCard(warnings = warnings, form = form, computed = computed)
             }
 
-            if (state.computed != null) {
+            if (computed != null) {
                 Spacer(Modifier.height(12.dp))
-                BolusSection(computed = state.computed)
+                BolusSection(computed = computed)
                 Spacer(Modifier.height(12.dp))
                 PlotSection(state = state, onNowSecondsChange = viewModel::onNowSecondsChange)
                 Spacer(Modifier.height(12.dp))
-                WakeSection(form = form, viewModel = viewModel, computed = state.computed)
-            } else if (state.blocking == null) {
+                WakeSection(form = form, viewModel = viewModel, computed = computed)
+            } else if (blocking == null) {
                 Spacer(Modifier.height(12.dp))
                 Text(
                     stringResource(R.string.tci_not_ready),
@@ -203,15 +234,23 @@ private fun TciDisclaimerBanner() {
     Card(
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
-            stringResource(R.string.tci_disclaimer),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(12.dp),
-        )
+        Row(modifier = Modifier.padding(12.dp)) {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            Text(
+                stringResource(R.string.tci_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -358,6 +397,16 @@ private fun TargetSection(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = form.bolusRateText,
+            onValueChange = viewModel::onBolusRateChange,
+            label = { Text(stringResource(R.string.tci_bolus_rate)) },
+            suffix = { Text(stringResource(R.string.tci_ml_h)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -484,7 +533,10 @@ private fun WarningCard(
                         TciWarning.HEIGHT_UNUSUAL -> stringResource(R.string.tci_warn_height, form.heightText)
                         TciWarning.AGE_UNUSUAL -> stringResource(R.string.tci_warn_age, form.ageText)
                         TciWarning.BMI_OUT_OF_RANGE -> stringResource(R.string.tci_warn_bmi, computed?.bmiDisplay ?: "—")
-                        TciWarning.TARGET_OUT_OF_RANGE -> stringResource(R.string.tci_warn_target, form.targetText)
+                        TciWarning.TARGET_OUT_OF_RANGE -> {
+                            val (low, high) = targetPhaseRange(form)
+                            stringResource(R.string.tci_warn_target, form.targetText, low.display() + "–" + high.display())
+                        }
                     }
                 Text(
                     text,
@@ -500,6 +552,7 @@ private fun WarningCard(
 
 @Composable
 private fun BolusSection(computed: TciComputed) {
+    var rateTableExpanded by remember { mutableStateOf(false) }
     TciSectionCard(title = stringResource(R.string.tci_section_bolus)) {
         Card(
             colors =
@@ -561,6 +614,25 @@ private fun BolusSection(computed: TciComputed) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = { rateTableExpanded = !rateTableExpanded }) {
+            Text(stringResource(R.string.tci_rate_table))
+        }
+        if (rateTableExpanded) {
+            computed.rateTable.forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                    Text(
+                        row.minute.toString() + " " + stringResource(R.string.tci_minutes),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        row.rateDisplay + " " + stringResource(R.string.tci_ml_h),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -581,6 +653,7 @@ private fun PlotSection(
                 unit = stringResource(R.string.tci_mcg_ml),
                 style = MaterialTheme.typography.headlineSmall,
                 prefix = "Cp ",
+                live = true,
             )
             Spacer(Modifier.weight(1f))
             BigValue(
@@ -588,6 +661,7 @@ private fun PlotSection(
                 unit = stringResource(R.string.tci_mcg_ml),
                 style = MaterialTheme.typography.headlineSmall,
                 prefix = "Ce ",
+                live = true,
             )
         }
         Spacer(Modifier.height(8.dp))
@@ -642,6 +716,7 @@ private fun CpCeChart(
     val cpColor = MaterialTheme.colorScheme.primary
     val ceColor = MaterialTheme.colorScheme.tertiary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val maxC =
         steps
             .maxOf { maxOf(it.cpMcgPerMl, it.ceMcgPerMl) }
@@ -649,32 +724,49 @@ private fun CpCeChart(
             .coerceAtLeast(1f)
     val maxT = steps.lastOrNull()?.timeSeconds ?: horizonSeconds
 
+    val chartDescription =
+        stringResource(R.string.tci_chart_description) + ". Cp " + cpNow + ", Ce " + ceNow
+    val textMeasurer = rememberTextMeasurer()
+    val axisStyle = TextStyle(fontSize = 10.sp, color = axisColor)
+    val maxLabel = formatAxisValue(maxC)
+
     Canvas(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(180.dp)
-                .semantics {
-                    contentDescription =
-                        stringResource(R.string.tci_chart_description) +
-                            ". Cp " + cpNow + ", Ce " + ceNow
-                },
+                .height(200.dp)
+                .semantics { contentDescription = chartDescription },
     ) {
         val stroke = 2.dp.toPx()
-        val inset = 4.dp.toPx()
-        val top = inset
-        val bottom = size.height - inset
-        val left = 0f
+        val padLeft = 30.dp.toPx()
+        val padBottom = 16.dp.toPx()
+        val padTop = 6.dp.toPx()
+        val top = padTop
+        val bottom = size.height - padBottom
+        val left = padLeft
         val right = size.width
 
         fun x(tSeconds: Int): Float = left + (tSeconds.toFloat() / maxT.toFloat()) * (right - left)
 
         fun y(c: BigDecimal): Float = bottom - (c.toFloat() / maxC) * (bottom - top)
 
+        // Подписи оси Y (мкг/мл): максимум сверху, 0 снизу
+        val maxText = textMeasurer.measure(AnnotatedString(maxLabel), axisStyle)
+        drawText(maxText, topLeft = Offset(0f, top - maxText.size.height / 2f))
+        val zeroText = textMeasurer.measure(AnnotatedString("0"), axisStyle)
+        drawText(zeroText, topLeft = Offset(0f, bottom - zeroText.size.height / 2f))
+
+        // Подписи оси X (минуты)
+        listOf(0, 15, 30, 45, 60).forEach { minute ->
+            val lx = x(minute * 60)
+            val label = textMeasurer.measure(AnnotatedString("$minute′"), axisStyle)
+            drawText(label, topLeft = Offset(lx - label.size.width / 2f, bottom + 2.dp.toPx()))
+        }
+
         // сетка: линии на 25/50/75/100% высоты
         for (f in 1..3) {
             val gy = top + (bottom - top) * (f / 4f)
-            drawLine(color = gridColor, start = androidx.compose.ui.geometry.Offset(left, gy), end = androidx.compose.ui.geometry.Offset(right, gy), strokeWidth = 1.dp.toPx())
+            drawLine(color = gridColor, start = Offset(left, gy), end = Offset(right, gy), strokeWidth = 1.dp.toPx())
         }
 
         val cpPath = Path()
@@ -703,6 +795,9 @@ private fun CpCeChart(
     }
 }
 
+private fun formatAxisValue(value: Float): String =
+    if (value >= 10f) value.toInt().toString() else "%.1f".format(value)
+
 // ---------------------------------------------------------------------- пробуждение
 
 @Composable
@@ -729,8 +824,14 @@ private fun WakeSection(
                 value = computed.wakeTimeDisplay ?: "—",
                 unit = "",
                 style = MaterialTheme.typography.headlineMedium,
+                live = true,
             )
         }
+        Text(
+            stringResource(R.string.tci_wake_prediction),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             stringResource(R.string.tci_wake_hint),
             style = MaterialTheme.typography.bodySmall,
@@ -852,8 +953,17 @@ private fun BigValue(
     unit: String,
     style: TextStyle,
     prefix: String = "",
+    live: Boolean = false,
 ) {
-    Row(verticalAlignment = Alignment.Bottom) {
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        modifier =
+            if (live) {
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            } else {
+                Modifier
+            },
+    ) {
         Text(
             text = prefix + value,
             style = style.copy(fontFeatureSettings = "tnum"),

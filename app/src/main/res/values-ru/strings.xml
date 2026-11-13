@@ -179,6 +179,7 @@
     <string name="tci_minutes">мин</string>
     <string name="tci_wake_threshold">Порог</string>
     <string name="tci_wake_time">Время</string>
+    <string name="tci_wake_prediction">Прогноз: если остановить инфузию сейчас</string>
     <string name="tci_wake_hint">после остановки инфузии до порога пробуждения</string>
     <string name="tci_blocking_weight">Введите вес пациента (кг).</string>
     <string name="tci_blocking_height">Введите рост (см). Schnider требует это поле.</string>
@@ -188,8 +189,8 @@
     <string name="tci_warn_weight">Проверьте вес: %1$s кг выглядит необычным.</string>
     <string name="tci_warn_height">Проверьте рост: %1$s см выглядит необычным.</string>
     <string name="tci_warn_age">Проверьте возраст: %1$s лет.</string>
-    <string name="tci_warn_bmi">BMI %1$s вне области применения Schnider (муж. &lt; 42, жен. &lt; 35 кг/м²).</string>
-    <string name="tci_warn_target">Цель %1$s мкг/мл вне рекомендуемого диапазона.</string>
+    <string name="tci_warn_bmi">BMI %1$s вне области применения Schnider (муж. &lt; 42, жен. &lt; 35 кг/м²). Выберите Marsh или проверьте данные.</string>
+    <string name="tci_warn_target">Целевая концентрация %1$s мкг/мл вне рекомендуемого диапазона (%2$s). Проверьте фазу и цель.</string>
     <string name="tci_confirm_reset">Смена %1$s сбросит расчёт и отметки этапов. Продолжить?</string>
     <string name="tci_continue">Продолжить</string>
     <string name="tci_review_title">Проверка перед индукцией</string>
