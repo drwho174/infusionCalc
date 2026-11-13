@@ -11,15 +11,17 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class TciComputationTest {
-
-    private fun marshForm(target: String, weight: String = "70", concentration: String = "10") =
-        TciForm(
-            model = TciModel.MARSH,
-            mode = TargetMode.PLASMA,
-            concentrationMgPerMl = BigDecimal(concentration),
-            weightText = weight,
-            targetText = target,
-        )
+    private fun marshForm(
+        target: String,
+        weight: String = "70",
+        concentration: String = "10",
+    ) = TciForm(
+        model = TciModel.MARSH,
+        mode = TargetMode.PLASMA,
+        concentrationMgPerMl = BigDecimal(concentration),
+        weightText = weight,
+        targetText = target,
+    )
 
     @Test
     fun `Marsh G1 computes bolus and maintenance rates`() {
@@ -30,7 +32,8 @@ class TciComputationTest {
         assertEquals("6.38", computed.bolusMlDisplay)
         assertEquals("104.2", computed.maintenanceStartDisplay)
         assertEquals("45.4", computed.maintenanceSteadyDisplay)
-        assertTrue(BigDecimal(computed.cpNowDisplay) > BigDecimal("3.9"))
+        val atFiveMinutes = computed.plan.predicted.last { it.timeSeconds <= 300 }
+        assertTrue(atFiveMinutes.cpMcgPerMl > BigDecimal("3.9"))
     }
 
     @Test

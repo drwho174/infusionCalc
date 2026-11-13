@@ -1,14 +1,28 @@
 package com.drwho174.infusioncalc.ui.viewmodel
 
+import com.drwho174.infusioncalc.tci.PumpPlan
 import com.drwho174.infusioncalc.tci.Sex
 import com.drwho174.infusioncalc.tci.TargetMode
 import com.drwho174.infusioncalc.tci.TciEngine
+import com.drwho174.infusioncalc.tci.TciError
 import com.drwho174.infusioncalc.tci.TciModel
 import com.drwho174.infusioncalc.tci.TciResult
 import com.drwho174.infusioncalc.tci.TciSimRequest
-import com.drwho174.infusioncalc.tci.TciSimulation
 import com.drwho174.infusioncalc.ui.display
 import java.math.BigDecimal
+
+private const val MAX_WEIGHT_KG = 300
+private const val MAX_HEIGHT_CM = 250
+private const val MIN_AGE = 18
+private const val MAX_AGE = 110
+private const val MAX_TARGET_MCG_ML = 20
+private const val UNUSUAL_HEIGHT_MIN_CM = 120
+private const val UNUSUAL_HEIGHT_MAX_CM = 220
+private const val UNUSUAL_AGE_MAX = 85
+private const val UNUSUAL_WEIGHT_MIN_KG = 20
+private const val UNUSUAL_WEIGHT_MAX_KG = 200
+private const val SECONDS_PER_MINUTE = 60
+private const val SECONDS_PER_HOUR = 3600
 
 /** Редактируемые входные данные карточки TCI (только в памяти сессии, D-TCI-13). */
 data class TciForm(
@@ -22,14 +36,12 @@ data class TciForm(
     val sex: Sex = Sex.MALE,
     val targetText: String = "",
     val wakeThresholdText: String = "1.5",
-    val nowSeconds: Int = DEFAULT_NOW_SECONDS,
     val inductionDone: Boolean = false,
     val maintenanceDone: Boolean = false,
     val emergenceDone: Boolean = false,
 ) {
     companion object {
         const val HORIZON_SECONDS = TciEngine.DEFAULT_HORIZON_SECONDS
-        const val DEFAULT_NOW_SECONDS = 300
     }
 }
 
@@ -51,24 +63,23 @@ enum class TciWarning {
     TARGET_OUT_OF_RANGE,
 }
 
+/** Строка таблицы уставок: время от старта и скорость. */
 data class RateTableRow(
-    val minute: Int,
+    val offsetSeconds: Int,
     val rateDisplay: String,
 )
 
-/** Рассчитанные значения для отображения. */
+/** Рассчитанные значения плана (без привязки к текущему времени). */
 data class TciComputed(
     val bolusMlDisplay: String,
     val bolusTimeDisplay: String,
     val bolusRateDisplay: String,
     val maintenanceStartDisplay: String,
     val maintenanceSteadyDisplay: String,
-    val cpNowDisplay: String,
-    val ceNowDisplay: String,
-    val wakeTimeDisplay: String?,
     val bmiDisplay: String?,
     val lbmDisplay: String?,
-    val simulation: TciSimulation,
+    /** Шаговая программа для обычного насоса (D-LIVE-2). */
+    val plan: PumpPlan,
     val rateTable: List<RateTableRow>,
 )
 
@@ -78,10 +89,15 @@ data class TciUiState(
     val blocking: TciBlocking? = null,
     val warnings: List<TciWarning> = emptyList(),
     val computed: TciComputed? = null,
+    val session: TciSession = TciSession(),
+    val live: TciLive? = null,
 ) {
     val isReady: Boolean get() = computed != null && blocking == null
+
+    val isRunning: Boolean get() = session.status == TciSessionStatus.RUNNING
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
 /** Чистый расчёт состояния TCI из формы (без Android/Compose). */
 internal fun buildTciState(form: TciForm): TciUiState {
     val bolusRate = form.bolusRateText.toBigDecimalOrNull()
@@ -90,27 +106,26 @@ internal fun buildTciState(form: TciForm): TciUiState {
     }
 
     val weight = form.weightText.toBigDecimalOrNull()
-    if (weight == null || weight.signum() <= 0 || weight > BigDecimal("300")) {
+    if (weight == null || weight.signum() <= 0 || weight > BigDecimal(MAX_WEIGHT_KG)) {
         return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = TciBlocking.WEIGHT)
     }
 
     val height = form.heightText.toBigDecimalOrNull()
     val age = form.ageText.trim().toIntOrNull()
     if (form.model == TciModel.SCHNIDER) {
-        if (height == null || height.signum() <= 0 || height > BigDecimal("250")) {
+        if (height == null || height.signum() <= 0 || height > BigDecimal(MAX_HEIGHT_CM)) {
             return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = TciBlocking.HEIGHT)
         }
-        if (age == null || age < 18 || age > 110) {
+        if (age == null || age < MIN_AGE || age > MAX_AGE) {
             return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = TciBlocking.AGE)
         }
     }
 
     val target = form.targetText.toBigDecimalOrNull()
-    if (target == null || target.signum() <= 0 || target > BigDecimal("20")) {
+    if (target == null || target.signum() <= 0 || target > BigDecimal(MAX_TARGET_MCG_ML)) {
         return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = TciBlocking.TARGET)
     }
 
-    val threshold = form.wakeThresholdText.toBigDecimalOrNull() ?: BigDecimal("1.5")
     val warnings = computeWarnings(form, weight, height, age, target)
 
     val request =
@@ -126,22 +141,11 @@ internal fun buildTciState(form: TciForm): TciUiState {
             sex = form.sex,
             horizonSeconds = TciForm.HORIZON_SECONDS,
         )
-    val result = TciEngine.simulate(request)
+    val result = TciEngine.pumpPlan(request)
     if (result is TciResult.Failure) {
         return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = blockingFrom(result))
     }
-    val simulation = (result as TciResult.Success).value
-
-    val nowStep = simulation.steps.lastOrNull { it.timeSeconds <= form.nowSeconds } ?: simulation.steps.first()
-    val params =
-        (TciEngine.parameters(form.model, weight, height, age, form.sex) as TciResult.Success).value
-    val wakeSeconds =
-        TciEngine.decrementTimeSeconds(
-            params = params,
-            state = nowStep.state,
-            mode = form.mode,
-            wakeThresholdMcgPerMl = threshold,
-        )
+    val plan = (result as TciResult.Success).value
 
     val bmi = if (form.model == TciModel.SCHNIDER) TciEngine.bmi(weight, height!!) else null
     val lbm = if (form.model == TciModel.SCHNIDER) TciEngine.lbmJames(weight, height!!, form.sex) else null
@@ -153,30 +157,25 @@ internal fun buildTciState(form: TciForm): TciUiState {
         warnings = warnings,
         computed =
             TciComputed(
-                bolusMlDisplay = TciEngine.formatVolumeMl(simulation.bolusMl).display(),
-                bolusTimeDisplay = formatBolusTime(simulation.bolusTimeSeconds),
-                bolusRateDisplay = TciEngine.formatRateMlPerHour(simulation.bolusRateMlPerHour).display(),
-                maintenanceStartDisplay =
-                    TciEngine.formatRateMlPerHour(simulation.maintenanceStartMlPerHour).display(),
-                maintenanceSteadyDisplay =
-                    TciEngine.formatRateMlPerHour(simulation.maintenanceSteadyMlPerHour).display(),
-                cpNowDisplay = TciEngine.formatConcentrationMcgMl(nowStep.cpMcgPerMl).display(),
-                ceNowDisplay = TciEngine.formatConcentrationMcgMl(nowStep.ceMcgPerMl).display(),
-                wakeTimeDisplay = formatWakeTime(wakeSeconds),
+                bolusMlDisplay = TciEngine.formatVolumeMl(plan.bolusMl).display(),
+                bolusTimeDisplay = formatBolusTime(plan.bolusTimeSeconds),
+                bolusRateDisplay = TciEngine.formatRateMlPerHour(plan.bolusRateMlPerHour).display(),
+                maintenanceStartDisplay = TciEngine.formatRateMlPerHour(plan.maintenanceStartMlPerHour).display(),
+                maintenanceSteadyDisplay = TciEngine.formatRateMlPerHour(plan.maintenanceSteadyMlPerHour).display(),
                 bmiDisplay = bmi?.let { TciEngine.formatConcentrationMcgMl(it).display() },
                 lbmDisplay = lbm?.let { TciEngine.formatConcentrationMcgMl(it).display() },
-                simulation = simulation,
-                rateTable = buildRateTable(simulation),
+                plan = plan,
+                rateTable = buildRateTable(plan),
             ),
     )
 }
 
 private fun blockingFrom(result: TciResult.Failure): TciBlocking =
     when (result.reason) {
-        com.drwho174.infusioncalc.tci.TciError.WEIGHT_OUT_OF_RANGE -> TciBlocking.WEIGHT
-        com.drwho174.infusioncalc.tci.TciError.HEIGHT_OUT_OF_RANGE -> TciBlocking.HEIGHT
-        com.drwho174.infusioncalc.tci.TciError.AGE_OUT_OF_RANGE -> TciBlocking.AGE
-        com.drwho174.infusioncalc.tci.TciError.TARGET_OUT_OF_RANGE -> TciBlocking.TARGET
+        TciError.WEIGHT_OUT_OF_RANGE -> TciBlocking.WEIGHT
+        TciError.HEIGHT_OUT_OF_RANGE -> TciBlocking.HEIGHT
+        TciError.AGE_OUT_OF_RANGE -> TciBlocking.AGE
+        TciError.TARGET_OUT_OF_RANGE -> TciBlocking.TARGET
         else -> TciBlocking.BOLUS_RATE
     }
 
@@ -195,14 +194,14 @@ private fun computeWarnings(
         if (TciEngine.isBmiOutsideSchniderRange(weight, h, form.sex)) {
             warnings.add(TciWarning.BMI_OUT_OF_RANGE)
         }
-        if (h < BigDecimal("120") || h > BigDecimal("220")) {
+        if (h < BigDecimal(UNUSUAL_HEIGHT_MIN_CM) || h > BigDecimal(UNUSUAL_HEIGHT_MAX_CM)) {
             warnings.add(TciWarning.HEIGHT_UNUSUAL)
         }
-        if (a < 18 || a > 85) {
+        if (a < MIN_AGE || a > UNUSUAL_AGE_MAX) {
             warnings.add(TciWarning.AGE_UNUSUAL)
         }
     }
-    if (weight < BigDecimal("20") || weight > BigDecimal("200")) {
+    if (weight < BigDecimal(UNUSUAL_WEIGHT_MIN_KG) || weight > BigDecimal(UNUSUAL_WEIGHT_MAX_KG)) {
         warnings.add(TciWarning.WEIGHT_UNUSUAL)
     }
 
@@ -229,32 +228,27 @@ internal fun targetPhaseRange(form: TciForm): Pair<BigDecimal, BigDecimal> =
         BigDecimal("2.5") to BigDecimal("4")
     }
 
-private fun buildRateTable(simulation: TciSimulation): List<RateTableRow> =
-    (300..TciForm.HORIZON_SECONDS step 300)
-        .mapNotNull { minuteSeconds ->
-            val step = simulation.steps.lastOrNull { it.timeSeconds <= minuteSeconds } ?: return@mapNotNull null
-            RateTableRow(
-                minute = minuteSeconds / 60,
-                rateDisplay = TciEngine.formatRateMlPerHour(step.rateMlPerHour).display(),
-            )
-        }
+private fun buildRateTable(plan: PumpPlan): List<RateTableRow> =
+    plan.steps.map { step ->
+        RateTableRow(
+            offsetSeconds = step.offsetSeconds,
+            rateDisplay = TciEngine.formatRateMlPerHour(step.rateMlPerHour).display(),
+        )
+    }
 
 /** Болюс: мм:сс (CALC-TCI-14). */
 internal fun formatBolusTime(seconds: Int): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return "%02d:%02d".format(m, s)
+    val minutes = seconds / SECONDS_PER_MINUTE
+    val secondsPart = seconds % SECONDS_PER_MINUTE
+    return "%02d:%02d".format(minutes, secondsPart)
 }
 
 /** Время до пробуждения: мм:сс, при ≥ 60 мин — чч:мм (CALC-TCI-14). */
 internal fun formatWakeTime(seconds: Int?): String? {
     if (seconds == null) return null
-    if (seconds >= 3600) {
-        val h = seconds / 3600
-        val m = (seconds % 3600) / 60
-        return "%d:%02d".format(h, m)
+    return if (seconds >= SECONDS_PER_HOUR) {
+        "%d:%02d".format(seconds / SECONDS_PER_HOUR, (seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
+    } else {
+        "%02d:%02d".format(seconds / SECONDS_PER_MINUTE, seconds % SECONDS_PER_MINUTE)
     }
-    val m = seconds / 60
-    val s = seconds % 60
-    return "%02d:%02d".format(m, s)
 }

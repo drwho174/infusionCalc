@@ -361,13 +361,15 @@ object TciEngine {
         mode: TargetMode,
         wakeThresholdMcgPerMl: BigDecimal,
         maxSeconds: Int = MAX_DECREMENT_SECONDS,
+        stepSeconds: Int = 1,
     ): Int? {
+        require(stepSeconds > 0) { "stepSeconds must be positive" }
         val kSum = params.k10.add(params.k12, MC).add(params.k13, MC)
         var a1 = state.a1Mg
         var a2 = state.a2Mg
         var a3 = state.a3Mg
         var ce = state.ceMcgPerMl
-        val dtMinutes = BigDecimal.ONE.divide(SIXTY, MC)
+        val dtMinutes = BigDecimal(stepSeconds).divide(SIXTY, MC)
 
         fun currentValue(): BigDecimal = if (mode == TargetMode.PLASMA) a1.divide(params.v1, MC) else ce
 
@@ -393,10 +395,208 @@ object TciEngine {
             a2 = a2New
             a3 = a3New
             ce = ceNew
-            t++
+            t += stepSeconds
             if (currentValue() <= wakeThresholdMcgPerMl) return t
         }
         return null
+    }
+
+    // ------------------------------------------------------------------ программа для обычного насоса
+
+    /** Интервал ступени поддержания по умолчанию — 5 минут (D-LIVE-2). */
+    const val PUMP_STEP_SECONDS = 300
+
+    /**
+     * Шаговая программа для шприцевого насоса без режима TCI (D-LIVE-2):
+     * болюс, затем поддержание ступенями по [stepSeconds] секунд.
+     *
+     * Скорость ступени — средняя скорость непрерывного clamp-контроллера на её интервале,
+     * поэтому Cp на границах ступеней близок к цели. [PumpPlan.predicted] — прогноз
+     * именно под исполнением этих ступеней (а не под идеальным непрерывным контроллером).
+     */
+    fun pumpPlan(
+        request: TciSimRequest,
+        stepSeconds: Int = PUMP_STEP_SECONDS,
+    ): TciResult<PumpPlan> {
+        require(stepSeconds > 0) { "stepSeconds must be positive" }
+        val closedLoop = simulate(request)
+        if (closedLoop is TciResult.Failure) return closedLoop
+        val sim = (closedLoop as TciResult.Success).value
+        val params = parametersOf(request)
+
+        val horizon = request.horizonSeconds
+        val steps = ArrayList<PumpStep>()
+        steps.add(PumpStep(offsetSeconds = 0, rateMlPerHour = request.bolusRateMlPerHour, bolus = true))
+        var start = sim.bolusTimeSeconds.coerceAtMost(horizon)
+        while (start < horizon) {
+            val alignedEnd = minOf(((start / stepSeconds) + 1) * stepSeconds, horizon)
+            val end = if (alignedEnd <= start) horizon else alignedEnd
+            steps.add(PumpStep(offsetSeconds = start, rateMlPerHour = averageRateMlPerHour(sim.steps, start, end)))
+            start = end
+        }
+
+        val predicted =
+            runWithRates(
+                params = params,
+                initial = TciState(ZERO, ZERO, ZERO, ZERO),
+                fromOffsetSeconds = 0,
+                horizonSeconds = horizon,
+                concentrationMgPerMl = request.concentrationMgPerMl,
+                rateMlPerHourAt = { seconds -> rateForStep(steps, seconds) },
+                boundaryAfter = { seconds -> steps.firstOrNull { it.offsetSeconds > seconds }?.offsetSeconds ?: Int.MAX_VALUE },
+            )
+
+        return TciResult.Success(
+            PumpPlan(
+                bolusMg = sim.bolusMg,
+                bolusMl = sim.bolusMl,
+                bolusTimeSeconds = sim.bolusTimeSeconds,
+                bolusRateMlPerHour = sim.bolusRateMlPerHour,
+                maintenanceStartMlPerHour = sim.maintenanceStartMlPerHour,
+                maintenanceSteadyMlPerHour = sim.maintenanceSteadyMlPerHour,
+                steps = steps,
+                predicted = predicted,
+            ),
+        )
+    }
+
+    /**
+     * Прогноз при постоянной скорости насоса от произвольного состояния
+     * (ручной режим, D-LIVE-3). Время шагов — абсолютное: [fromOffsetSeconds] + t.
+     */
+    fun simulateConstantRate(
+        params: TciParameters,
+        fromState: TciState,
+        fromOffsetSeconds: Int,
+        rateMlPerHour: BigDecimal,
+        concentrationMgPerMl: BigDecimal,
+        horizonSeconds: Int,
+    ): List<SimStep> =
+        runWithRates(
+            params = params,
+            initial = fromState,
+            fromOffsetSeconds = fromOffsetSeconds,
+            horizonSeconds = horizonSeconds,
+            concentrationMgPerMl = concentrationMgPerMl,
+            rateMlPerHourAt = { rateMlPerHour },
+            boundaryAfter = { Int.MAX_VALUE },
+        )
+
+    private fun parametersOf(request: TciSimRequest): TciParameters =
+        (parameters(request.model, request.weightKg, request.heightCm, request.ageYears, request.sex) as TciResult.Success).value
+
+    private fun rateForStep(
+        steps: List<PumpStep>,
+        seconds: Int,
+    ): BigDecimal {
+        var rate = steps.first().rateMlPerHour
+        for (step in steps) {
+            if (step.offsetSeconds > seconds) break
+            rate = step.rateMlPerHour
+        }
+        return rate
+    }
+
+    /** Средняя скорость (мл/ч) на интервале [fromSeconds, toSeconds) по временному ряду. */
+    private fun averageRateMlPerHour(
+        steps: List<SimStep>,
+        fromSeconds: Int,
+        toSeconds: Int,
+    ): BigDecimal {
+        var weighted = ZERO
+        var weight = ZERO
+        for (index in 0 until steps.size - 1) {
+            val segmentStart = maxOf(steps[index].timeSeconds, fromSeconds)
+            val segmentEnd = minOf(steps[index + 1].timeSeconds, toSeconds)
+            if (segmentEnd > segmentStart) {
+                val w = BigDecimal(segmentEnd - segmentStart)
+                weighted = weighted.add(w.multiply(steps[index].rateMlPerHour, MC), MC)
+                weight = weight.add(w, MC)
+            }
+        }
+        if (weight.signum() == 0) return steps.last().rateMlPerHour
+        return weighted.divide(weight, MC)
+    }
+
+    private fun runWithRates(
+        params: TciParameters,
+        initial: TciState,
+        fromOffsetSeconds: Int,
+        horizonSeconds: Int,
+        concentrationMgPerMl: BigDecimal,
+        rateMlPerHourAt: (Int) -> BigDecimal,
+        boundaryAfter: (Int) -> Int,
+    ): List<SimStep> {
+        var state = initial
+        val result = ArrayList<SimStep>((horizonSeconds / 5) + 2)
+
+        fun record(localSeconds: Int, current: TciState) {
+            result.add(
+                SimStep(
+                    timeSeconds = fromOffsetSeconds + localSeconds,
+                    cpMcgPerMl = current.a1Mg.divide(params.v1, MC),
+                    ceMcgPerMl = current.ceMcgPerMl,
+                    rateMlPerHour = rateMlPerHourAt(localSeconds),
+                    state = current,
+                ),
+            )
+        }
+
+        record(0, state)
+        var t = 0
+        while (t < horizonSeconds) {
+            val step = if (t < 900) 1 else 10
+            val next = minOf(t + step, boundaryAfter(t), horizonSeconds)
+            val dtMinutes = BigDecimal(next - t).divide(SIXTY, MC)
+            val rateMgPerMin = rateMlPerHourAt(t).multiply(concentrationMgPerMl, MC).divide(SIXTY, MC)
+            state = advanceState(params, state, dtMinutes, rateMgPerMin)
+            t = next
+            record(t, state)
+        }
+        return result
+    }
+
+    private fun advanceState(
+        params: TciParameters,
+        state: TciState,
+        dtMinutes: BigDecimal,
+        rateMgPerMin: BigDecimal,
+    ): TciState {
+        val kSum = params.k10.add(params.k12, MC).add(params.k13, MC)
+        val cp = state.a1Mg.divide(params.v1, MC)
+        val a1 =
+            state.a1Mg.add(
+                dtMinutes.multiply(
+                    params.k21.multiply(state.a2Mg, MC)
+                        .add(params.k31.multiply(state.a3Mg, MC), MC)
+                        .subtract(kSum.multiply(state.a1Mg, MC), MC)
+                        .add(rateMgPerMin, MC),
+                    MC,
+                ),
+                MC,
+            )
+        val a2 =
+            state.a2Mg.add(
+                dtMinutes.multiply(
+                    params.k12.multiply(state.a1Mg, MC).subtract(params.k21.multiply(state.a2Mg, MC), MC),
+                    MC,
+                ),
+                MC,
+            )
+        val a3 =
+            state.a3Mg.add(
+                dtMinutes.multiply(
+                    params.k13.multiply(state.a1Mg, MC).subtract(params.k31.multiply(state.a3Mg, MC), MC),
+                    MC,
+                ),
+                MC,
+            )
+        val ce =
+            state.ceMcgPerMl.add(
+                dtMinutes.multiply(params.ke0, MC).multiply(cp.subtract(state.ceMcgPerMl, MC), MC),
+                MC,
+            )
+        return TciState(a1Mg = a1, a2Mg = a2, a3Mg = a3, ceMcgPerMl = ce)
     }
 
     // ------------------------------------------------------------------ округление вывода

@@ -8,6 +8,8 @@ import com.drwho174.infusioncalc.data.local.AppDatabase
 import com.drwho174.infusioncalc.data.local.DrugDao
 import com.drwho174.infusioncalc.data.local.FolderDao
 import com.drwho174.infusioncalc.data.seed.CatalogSeeder
+import com.drwho174.infusioncalc.data.session.DataStoreTciSessionStore
+import com.drwho174.infusioncalc.data.session.TciSessionStore
 import com.drwho174.infusioncalc.data.settings.SettingsRepository
 import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
@@ -38,6 +40,7 @@ val appModule =
         single<DrugRepository> { RoomDrugRepository(get()) }
         single<FolderRepository> { RoomFolderRepository(get()) }
         single { SettingsRepository(androidContext()) }
+        single<TciSessionStore> { DataStoreTciSessionStore(androidContext()) }
         single { WeightStore() }
         single { CatalogSeeder(get()) }
 
@@ -49,5 +52,5 @@ val appModule =
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
-        viewModel { TciViewModel() }
+        viewModel { TciViewModel(get()) }
     }

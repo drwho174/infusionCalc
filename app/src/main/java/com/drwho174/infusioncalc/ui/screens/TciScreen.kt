@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.drwho174.infusioncalc.ui.screens
 
 import androidx.compose.foundation.Canvas
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -27,16 +30,18 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -56,6 +62,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.tci.Sex
@@ -63,15 +72,43 @@ import com.drwho174.infusioncalc.tci.SimStep
 import com.drwho174.infusioncalc.tci.TargetMode
 import com.drwho174.infusioncalc.tci.TciModel
 import com.drwho174.infusioncalc.ui.display
+import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import com.drwho174.infusioncalc.ui.viewmodel.TciBlocking
 import com.drwho174.infusioncalc.ui.viewmodel.TciComputed
 import com.drwho174.infusioncalc.ui.viewmodel.TciForm
+import com.drwho174.infusioncalc.ui.viewmodel.TciLive
+import com.drwho174.infusioncalc.ui.viewmodel.TciPhase
+import com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus
 import com.drwho174.infusioncalc.ui.viewmodel.TciUiState
 import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.TciWarning
 import com.drwho174.infusioncalc.ui.viewmodel.targetPhaseRange
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
+/** Как часто экран перерисовывается, пока виден. */
+private const val TICK_INTERVAL_MS = 1_000L
+
+/** Не чаще раза в 30 с — чтобы TalkBack не озвучивал каждую секунду. */
+private const val LIVE_ANNOUNCE_SECONDS = 30
+
+private const val SECONDS_PER_MINUTE = 60
+private const val SECONDS_PER_HOUR = 3600
+
+/** Округление оси времени вверх, чтобы курсор не упирался в край. */
+private const val CHART_ROUND_SECONDS = 900
+private const val CHART_STEPS = 4
+private const val CHART_GRID_LINES = 3
+private const val AXIS_MAX_INT_THRESHOLD = 10f
+private const val AXIS_FONT_SIZE_SP = 10f
+private const val CHART_DASH_ON = 12f
+private const val CHART_DASH_OFF = 8f
+private const val CURSOR_DASH_ON = 6f
+private const val CURSOR_DASH_OFF = 6f
+
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TciScreen(
@@ -83,10 +120,53 @@ fun TciScreen(
     val blocking = state.blocking
     val computed = state.computed
     val warnings = state.warnings
+    val session = state.session
+    val live = state.live
+    val active = session.isActive
 
     var showReview by remember { mutableStateOf(false) }
     var pendingModel by remember { mutableStateOf<TciModel?>(null) }
     var pendingMode by remember { mutableStateOf<TargetMode?>(null) }
+
+    // Экран не должен засыпать, пока идёт сессия: на него смотрят во время инфузии.
+    val view = LocalView.current
+    DisposableEffect(session.status) {
+        view.keepScreenOn = session.status == TciSessionStatus.RUNNING
+        onDispose { view.keepScreenOn = false }
+    }
+
+    // Тикаем только пока экран виден; время всё равно считается по часам,
+    // поэтому в фоне сессия продолжается без нагрузки на батарею.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    DisposableEffect(lifecycleOwner, viewModel) {
+        var ticker: kotlinx.coroutines.Job? = null
+        val observer =
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> {
+                        viewModel.refresh()
+                        ticker =
+                            scope.launch {
+                                while (isActive) {
+                                    viewModel.refresh()
+                                    delay(TICK_INTERVAL_MS)
+                                }
+                            }
+                    }
+                    Lifecycle.Event.ON_PAUSE -> {
+                        ticker?.cancel()
+                        ticker = null
+                    }
+                    else -> Unit
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            ticker?.cancel()
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val hasInput =
         form.weightText.isNotBlank() ||
@@ -110,8 +190,7 @@ fun TciScreen(
                                     .background(
                                         color = MaterialTheme.colorScheme.errorContainer,
                                         shape = MaterialTheme.shapes.small,
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                    ).padding(horizontal = 8.dp, vertical = 2.dp),
                         )
                     }
                 },
@@ -142,8 +221,20 @@ fun TciScreen(
             TciDisclaimerBanner()
 
             Spacer(Modifier.height(12.dp))
+            SessionSection(
+                state = state,
+                onStart = viewModel::start,
+                onPause = viewModel::pause,
+                onResume = viewModel::resume,
+                onStop = viewModel::stop,
+                onConfirm = viewModel::confirmCurrentRate,
+                onManualRate = viewModel::setManualRate,
+            )
+
+            Spacer(Modifier.height(12.dp))
             ModelModeSection(
                 form = form,
+                enabled = !active,
                 onModelClick = { model ->
                     if (model != form.model) {
                         if (hasInput) pendingModel = model else viewModel.changeModel(model)
@@ -157,10 +248,10 @@ fun TciScreen(
             )
 
             Spacer(Modifier.height(12.dp))
-            PatientSection(form = form, viewModel = viewModel)
+            PatientSection(form = form, viewModel = viewModel, enabled = !active)
 
             Spacer(Modifier.height(12.dp))
-            TargetSection(form = form, viewModel = viewModel)
+            TargetSection(form = form, viewModel = viewModel, enabled = !active)
 
             Spacer(Modifier.height(12.dp))
             StageSection(form = form, viewModel = viewModel)
@@ -177,11 +268,16 @@ fun TciScreen(
 
             if (computed != null) {
                 Spacer(Modifier.height(12.dp))
-                BolusSection(computed = computed)
+                BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
                 Spacer(Modifier.height(12.dp))
-                PlotSection(state = state, onNowSecondsChange = viewModel::onNowSecondsChange)
+                PlotSection(computed = computed, live = live)
                 Spacer(Modifier.height(12.dp))
-                WakeSection(form = form, viewModel = viewModel, computed = computed)
+                WakeSection(
+                    form = form,
+                    live = live,
+                    enabled = !active,
+                    onThresholdChange = viewModel::onThresholdChange,
+                )
             } else if (blocking == null) {
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -227,6 +323,246 @@ fun TciScreen(
     }
 }
 
+// ---------------------------------------------------------------------- сессия и насос
+
+@Suppress("LongMethod", "LongParameterList")
+@Composable
+private fun SessionSection(
+    state: TciUiState,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
+    onConfirm: () -> Unit,
+    onManualRate: (String) -> Unit,
+) {
+    val session = state.session
+    val live = state.live
+    var showManual by remember { mutableStateOf(false) }
+    var showStop by remember { mutableStateOf(false) }
+
+    TciSectionCard(title = stringResource(R.string.tci_session_title)) {
+        if (!session.isActive) {
+            Text(
+                stringResource(R.string.tci_session_idle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onStart, enabled = state.isReady) {
+                Text(stringResource(R.string.tci_session_start))
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.tci_session_steps_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = formatElapsed(live?.elapsedSeconds ?: 0),
+                    style = MaterialTheme.typography.headlineMedium.copy(fontFeatureSettings = "tnum"),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text =
+                        stringResource(
+                            if (session.status == TciSessionStatus.PAUSED) {
+                                R.string.tci_session_paused
+                            } else {
+                                R.string.tci_session_running
+                            },
+                        ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            if (live != null) {
+                PumpPanel(
+                    live = live,
+                    onConfirm = onConfirm,
+                    onManualRate = { showManual = true },
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (session.status == TciSessionStatus.RUNNING) {
+                    OutlinedButton(onClick = onPause) { Text(stringResource(R.string.tci_session_pause)) }
+                } else {
+                    OutlinedButton(onClick = onResume) { Text(stringResource(R.string.tci_session_resume)) }
+                }
+                OutlinedButton(onClick = { showStop = true }) { Text(stringResource(R.string.tci_session_stop)) }
+            }
+        }
+    }
+
+    if (showManual) {
+        ManualRateDialog(
+            onDismiss = { showManual = false },
+            onConfirm = { raw ->
+                onManualRate(raw)
+                showManual = false
+            },
+        )
+    }
+
+    if (showStop) {
+        AlertDialog(
+            onDismissRequest = { showStop = false },
+            title = { Text(stringResource(R.string.tci_session_stop_title)) },
+            text = { Text(stringResource(R.string.tci_session_stop_text)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onStop()
+                        showStop = false
+                    },
+                ) { Text(stringResource(R.string.tci_session_stop)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStop = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Suppress("LongMethod")
+@Composable
+private fun PumpPanel(
+    live: TciLive,
+    onConfirm: () -> Unit,
+    onManualRate: () -> Unit,
+) {
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text =
+                    stringResource(
+                        when {
+                            live.manual -> R.string.tci_pump_manual_mode
+                            live.phase == TciPhase.BOLUS -> R.string.tci_pump_phase_bolus
+                            else -> R.string.tci_pump_phase_maintenance
+                        },
+                    ),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = live.currentRateMlPerHour?.display() ?: "—",
+                    style = MaterialTheme.typography.headlineLarge.copy(fontFeatureSettings = "tnum"),
+                )
+                Text(
+                    text = " " + stringResource(R.string.tci_ml_h),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+            val nextIn = live.nextChangeInSeconds
+            when {
+                live.manual ->
+                    Text(
+                        stringResource(R.string.tci_pump_manual_active),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                live.phase == TciPhase.BOLUS && nextIn != null ->
+                    Text(
+                        stringResource(R.string.tci_pump_bolus_remaining, formatElapsed(nextIn)),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                nextIn != null -> {
+                    Text(
+                        stringResource(R.string.tci_pump_next_in, formatElapsed(nextIn)),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    live.nextRateMlPerHour?.let { next ->
+                        Text(
+                            stringResource(R.string.tci_pump_next_rate, next.display()) +
+                                " " +
+                                stringResource(R.string.tci_ml_h),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                else ->
+                    Text(
+                        stringResource(R.string.tci_pump_steady),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+            }
+            if (live.overdue) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.tci_pump_overdue),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onConfirm, enabled = !live.confirmed && !live.manual) {
+                    Text(
+                        stringResource(
+                            if (live.confirmed) R.string.tci_pump_confirmed else R.string.tci_pump_confirm,
+                        ),
+                    )
+                }
+                TextButton(onClick = onManualRate) {
+                    Text(stringResource(R.string.tci_pump_manual_action))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualRateDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tci_pump_manual_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = normalizeDecimalInput(it) },
+                    label = { Text(stringResource(R.string.tci_pump_manual_rate)) },
+                    suffix = { Text(stringResource(R.string.tci_ml_h)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.tci_pump_manual_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(text) },
+                enabled = text.toBigDecimalOrNull()?.signum() == 1,
+            ) { Text(stringResource(R.string.tci_continue)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
 // ---------------------------------------------------------------------- баннер
 
 @Composable
@@ -259,6 +595,7 @@ private fun TciDisclaimerBanner() {
 @Composable
 private fun ModelModeSection(
     form: TciForm,
+    enabled: Boolean,
     onModelClick: (TciModel) -> Unit,
     onModeClick: (TargetMode) -> Unit,
 ) {
@@ -269,11 +606,13 @@ private fun ModelModeSection(
             FilterChip(
                 selected = form.model == TciModel.MARSH,
                 onClick = { onModelClick(TciModel.MARSH) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_model_marsh)) },
             )
             FilterChip(
                 selected = form.model == TciModel.SCHNIDER,
                 onClick = { onModelClick(TciModel.SCHNIDER) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_model_schnider)) },
             )
         }
@@ -284,11 +623,13 @@ private fun ModelModeSection(
             FilterChip(
                 selected = form.mode == TargetMode.PLASMA,
                 onClick = { onModeClick(TargetMode.PLASMA) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_mode_plasma)) },
             )
             FilterChip(
                 selected = form.mode == TargetMode.EFFECT_SITE,
                 onClick = { onModeClick(TargetMode.EFFECT_SITE) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_mode_effect)) },
             )
         }
@@ -301,6 +642,7 @@ private fun ModelModeSection(
 private fun PatientSection(
     form: TciForm,
     viewModel: TciViewModel,
+    enabled: Boolean,
 ) {
     TciSectionCard(title = stringResource(R.string.tci_section_patient)) {
         OutlinedTextField(
@@ -309,6 +651,7 @@ private fun PatientSection(
             label = { Text(stringResource(R.string.tci_weight)) },
             suffix = { Text(stringResource(R.string.tci_kg)) },
             singleLine = true,
+            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -320,6 +663,7 @@ private fun PatientSection(
                 label = { Text(stringResource(R.string.tci_height)) },
                 suffix = { Text(stringResource(R.string.tci_cm)) },
                 singleLine = true,
+                enabled = enabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -330,6 +674,7 @@ private fun PatientSection(
                 label = { Text(stringResource(R.string.tci_age)) },
                 suffix = { Text(stringResource(R.string.tci_years)) },
                 singleLine = true,
+                enabled = enabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -340,11 +685,13 @@ private fun PatientSection(
                 FilterChip(
                     selected = form.sex == Sex.MALE,
                     onClick = { viewModel.onSexSelected(Sex.MALE) },
+                    enabled = enabled,
                     label = { Text(stringResource(R.string.tci_sex_male)) },
                 )
                 FilterChip(
                     selected = form.sex == Sex.FEMALE,
                     onClick = { viewModel.onSexSelected(Sex.FEMALE) },
+                    enabled = enabled,
                     label = { Text(stringResource(R.string.tci_sex_female)) },
                 )
             }
@@ -358,6 +705,7 @@ private fun PatientSection(
 private fun TargetSection(
     form: TciForm,
     viewModel: TciViewModel,
+    enabled: Boolean,
 ) {
     TciSectionCard(title = stringResource(R.string.tci_section_target)) {
         Text(stringResource(R.string.tci_concentration), style = MaterialTheme.typography.labelLarge)
@@ -366,11 +714,13 @@ private fun TargetSection(
             FilterChip(
                 selected = form.concentrationMgPerMl == BigDecimal("10"),
                 onClick = { viewModel.onConcentrationSelected(BigDecimal("10")) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_concentration_10)) },
             )
             FilterChip(
                 selected = form.concentrationMgPerMl == BigDecimal("20"),
                 onClick = { viewModel.onConcentrationSelected(BigDecimal("20")) },
+                enabled = enabled,
                 label = { Text(stringResource(R.string.tci_concentration_20)) },
             )
         }
@@ -394,6 +744,7 @@ private fun TargetSection(
                 )
             },
             singleLine = true,
+            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -404,6 +755,7 @@ private fun TargetSection(
             label = { Text(stringResource(R.string.tci_bolus_rate)) },
             suffix = { Text(stringResource(R.string.tci_ml_h)) },
             singleLine = true,
+            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -532,10 +884,15 @@ private fun WarningCard(
                         TciWarning.WEIGHT_UNUSUAL -> stringResource(R.string.tci_warn_weight, form.weightText)
                         TciWarning.HEIGHT_UNUSUAL -> stringResource(R.string.tci_warn_height, form.heightText)
                         TciWarning.AGE_UNUSUAL -> stringResource(R.string.tci_warn_age, form.ageText)
-                        TciWarning.BMI_OUT_OF_RANGE -> stringResource(R.string.tci_warn_bmi, computed?.bmiDisplay ?: "—")
+                        TciWarning.BMI_OUT_OF_RANGE ->
+                            stringResource(R.string.tci_warn_bmi, computed?.bmiDisplay ?: "—")
                         TciWarning.TARGET_OUT_OF_RANGE -> {
                             val (low, high) = targetPhaseRange(form)
-                            stringResource(R.string.tci_warn_target, form.targetText, low.display() + "–" + high.display())
+                            stringResource(
+                                R.string.tci_warn_target,
+                                form.targetText,
+                                low.display() + "–" + high.display(),
+                            )
                         }
                     }
                 Text(
@@ -550,8 +907,12 @@ private fun WarningCard(
 
 // ---------------------------------------------------------------------- болюс/поддержание
 
+@Suppress("LongMethod")
 @Composable
-private fun BolusSection(computed: TciComputed) {
+private fun BolusSection(
+    computed: TciComputed,
+    currentOffset: Int?,
+) {
     var rateTableExpanded by remember { mutableStateOf(false) }
     TciSectionCard(title = stringResource(R.string.tci_section_bolus)) {
         Card(
@@ -620,9 +981,22 @@ private fun BolusSection(computed: TciComputed) {
         }
         if (rateTableExpanded) {
             computed.rateTable.forEach { row ->
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                val current = row.offsetSeconds == currentOffset
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (current) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                MaterialTheme.shapes.extraSmall,
+                            ).padding(vertical = 2.dp, horizontal = 4.dp),
+                ) {
                     Text(
-                        row.minute.toString() + " " + stringResource(R.string.tci_minutes),
+                        text = formatElapsed(row.offsetSeconds),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
@@ -640,52 +1014,61 @@ private fun BolusSection(computed: TciComputed) {
 
 @Composable
 private fun PlotSection(
-    state: TciUiState,
-    onNowSecondsChange: (Int) -> Unit,
+    computed: TciComputed,
+    live: TciLive?,
 ) {
-    val computed = state.computed ?: return
-    val steps = computed.simulation.steps
+    val elapsed = live?.elapsedSeconds ?: 0
     TciSectionCard(title = stringResource(R.string.tci_section_plot)) {
-        Text(stringResource(R.string.tci_now), style = MaterialTheme.typography.labelLarge)
         Row(verticalAlignment = Alignment.Bottom) {
             BigValue(
-                value = computed.cpNowDisplay,
+                value = live?.cpDisplay ?: "—",
                 unit = stringResource(R.string.tci_mcg_ml),
                 style = MaterialTheme.typography.headlineSmall,
                 prefix = "Cp ",
-                live = true,
             )
             Spacer(Modifier.weight(1f))
             BigValue(
-                value = computed.ceNowDisplay,
+                value = live?.ceDisplay ?: "—",
                 unit = stringResource(R.string.tci_mcg_ml),
                 style = MaterialTheme.typography.headlineSmall,
                 prefix = "Ce ",
-                live = true,
+            )
+        }
+        if (live != null) {
+            val bucket = live.elapsedSeconds / LIVE_ANNOUNCE_SECONDS
+            val summary =
+                stringResource(
+                    R.string.tci_live_summary,
+                    live.cpDisplay,
+                    live.ceDisplay,
+                    live.wakeDisplay ?: "—",
+                )
+            val announced = remember(bucket) { summary }
+            Text(
+                text = announced,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
         Spacer(Modifier.height(8.dp))
         CpCeChart(
-            steps = steps,
+            steps = live?.curve ?: computed.plan.predicted,
             horizonSeconds = TciForm.HORIZON_SECONDS,
-            cpNow = computed.cpNowDisplay,
-            ceNow = computed.ceNowDisplay,
+            elapsedSeconds = if (live != null) elapsed else null,
         )
         Spacer(Modifier.height(8.dp))
         LegendRow()
-        Spacer(Modifier.height(8.dp))
-        Slider(
-            value = state.form.nowSeconds.toFloat(),
-            onValueChange = { seconds -> onNowSecondsChange(seconds.toInt()) },
-            valueRange = 0f..TciForm.HORIZON_SECONDS.toFloat(),
-        )
+        Spacer(Modifier.height(4.dp))
         Text(
-            stringResource(R.string.tci_now) +
-                ": " +
-                (state.form.nowSeconds / 60).toString() +
-                " " +
-                stringResource(R.string.tci_minutes),
+            text =
+                if (live == null) {
+                    stringResource(R.string.tci_plot_idle)
+                } else {
+                    stringResource(R.string.tci_plot_elapsed, formatElapsed(elapsed))
+                },
             style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -706,12 +1089,12 @@ private fun LegendRow() {
     }
 }
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun CpCeChart(
     steps: List<SimStep>,
     horizonSeconds: Int,
-    cpNow: String,
-    ceNow: String,
+    elapsedSeconds: Int?,
 ) {
     val cpColor = MaterialTheme.colorScheme.primary
     val ceColor = MaterialTheme.colorScheme.tertiary
@@ -722,13 +1105,25 @@ private fun CpCeChart(
             .maxOf { maxOf(it.cpMcgPerMl, it.ceMcgPerMl) }
             .toFloat()
             .coerceAtLeast(1f)
-    val maxT = steps.lastOrNull()?.timeSeconds ?: horizonSeconds
+    val maxT =
+        maxOf(
+            horizonSeconds,
+            elapsedSeconds?.let {
+                ((it + CHART_ROUND_SECONDS - 1) / CHART_ROUND_SECONDS) * CHART_ROUND_SECONDS
+            } ?: horizonSeconds,
+        )
 
     val chartDescription =
-        stringResource(R.string.tci_chart_description) + ". Cp " + cpNow + ", Ce " + ceNow
+        stringResource(R.string.tci_chart_description) +
+            if (elapsedSeconds != null) {
+                " " + stringResource(R.string.tci_plot_elapsed, formatElapsed(elapsedSeconds))
+            } else {
+                ""
+            }
     val textMeasurer = rememberTextMeasurer()
-    val axisStyle = TextStyle(fontSize = 10.sp, color = axisColor)
+    val axisStyle = TextStyle(fontSize = AXIS_FONT_SIZE_SP.sp, color = axisColor)
     val maxLabel = formatAxisValue(maxC)
+    val cursorColor = MaterialTheme.colorScheme.error
 
     Canvas(
         modifier =
@@ -750,69 +1145,110 @@ private fun CpCeChart(
 
         fun y(c: BigDecimal): Float = bottom - (c.toFloat() / maxC) * (bottom - top)
 
-        // Подписи оси Y (мкг/мл): максимум сверху, 0 снизу
         val maxText = textMeasurer.measure(AnnotatedString(maxLabel), axisStyle)
         drawText(maxText, topLeft = Offset(0f, top - maxText.size.height / 2f))
         val zeroText = textMeasurer.measure(AnnotatedString("0"), axisStyle)
         drawText(zeroText, topLeft = Offset(0f, bottom - zeroText.size.height / 2f))
 
-        // Подписи оси X (минуты)
-        listOf(0, 15, 30, 45, 60).forEach { minute ->
-            val lx = x(minute * 60)
-            val label = textMeasurer.measure(AnnotatedString("$minute′"), axisStyle)
+        for (quarter in 0..CHART_STEPS) {
+            val seconds = maxT * quarter / CHART_STEPS
+            val lx = x(seconds)
+            val label = textMeasurer.measure(AnnotatedString(formatAxisTime(seconds)), axisStyle)
             drawText(label, topLeft = Offset(lx - label.size.width / 2f, bottom + 2.dp.toPx()))
         }
 
-        // сетка: линии на 25/50/75/100% высоты
-        for (f in 1..3) {
-            val gy = top + (bottom - top) * (f / 4f)
+        for (f in 1..CHART_GRID_LINES) {
+            val gy = top + (bottom - top) * (f / CHART_STEPS.toFloat())
             drawLine(color = gridColor, start = Offset(left, gy), end = Offset(right, gy), strokeWidth = 1.dp.toPx())
         }
 
         val cpPath = Path()
-        steps.forEachIndexed { index, step ->
+        val cePath = Path()
+        var lastStep: SimStep? = null
+        steps.filter { it.timeSeconds <= maxT }.forEachIndexed { index, step ->
             val px = x(step.timeSeconds)
             val py = y(step.cpMcgPerMl)
             if (index == 0) cpPath.moveTo(px, py) else cpPath.lineTo(px, py)
+            val ey = y(step.ceMcgPerMl)
+            if (index == 0) cePath.moveTo(px, ey) else cePath.lineTo(px, ey)
+            lastStep = step
+        }
+        // Продлеваем полку до правого края, если сессия длиннее прогноза.
+        lastStep?.let { last ->
+            if (last.timeSeconds < maxT) {
+                cpPath.lineTo(x(maxT), y(last.cpMcgPerMl))
+                cePath.lineTo(x(maxT), y(last.ceMcgPerMl))
+            }
         }
         drawPath(cpPath, color = cpColor, style = Stroke(width = stroke))
-
-        val cePath = Path()
-        steps.forEachIndexed { index, step ->
-            val px = x(step.timeSeconds)
-            val py = y(step.ceMcgPerMl)
-            if (index == 0) cePath.moveTo(px, py) else cePath.lineTo(px, py)
-        }
         drawPath(
             cePath,
             color = ceColor,
             style =
                 Stroke(
                     width = stroke,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f)),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(CHART_DASH_ON, CHART_DASH_OFF)),
                 ),
         )
+
+        if (elapsedSeconds != null && elapsedSeconds <= maxT) {
+            val cx = x(elapsedSeconds)
+            drawLine(
+                color = cursorColor,
+                start = Offset(cx, top),
+                end = Offset(cx, bottom),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(CURSOR_DASH_ON, CURSOR_DASH_OFF)),
+            )
+            val point = steps.lastOrNull { it.timeSeconds <= elapsedSeconds } ?: steps.firstOrNull()
+            point?.let {
+                drawCircle(color = cpColor, radius = 4.dp.toPx(), center = Offset(cx, y(it.cpMcgPerMl)))
+                drawCircle(color = ceColor, radius = 4.dp.toPx(), center = Offset(cx, y(it.ceMcgPerMl)))
+            }
+        }
     }
 }
 
 private fun formatAxisValue(value: Float): String =
-    if (value >= 10f) value.toInt().toString() else "%.1f".format(value)
+    if (value >= AXIS_MAX_INT_THRESHOLD) {
+        value.toInt().toString()
+    } else {
+        "%.1f".format(value)
+    }
+
+private fun formatAxisTime(seconds: Int): String =
+    if (seconds >= SECONDS_PER_HOUR) {
+        val hours = seconds / SECONDS_PER_HOUR
+        val minutes = (seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+        if (minutes == 0) "${hours}h" else "$hours:%02d".format(minutes)
+    } else {
+        "${seconds / SECONDS_PER_MINUTE}′"
+    }
+
+private fun formatElapsed(seconds: Int): String {
+    val hours = seconds / SECONDS_PER_HOUR
+    val minutes = (seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+    val secs = seconds % SECONDS_PER_MINUTE
+    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, secs) else "%02d:%02d".format(minutes, secs)
+}
 
 // ---------------------------------------------------------------------- пробуждение
 
 @Composable
 private fun WakeSection(
     form: TciForm,
-    viewModel: TciViewModel,
-    computed: TciComputed,
+    live: TciLive?,
+    enabled: Boolean,
+    onThresholdChange: (String) -> Unit,
 ) {
     TciSectionCard(title = stringResource(R.string.tci_section_wake)) {
         OutlinedTextField(
             value = form.wakeThresholdText,
-            onValueChange = viewModel::onThresholdChange,
+            onValueChange = onThresholdChange,
             label = { Text(stringResource(R.string.tci_wake_threshold)) },
             suffix = { Text(stringResource(R.string.tci_mcg_ml)) },
             singleLine = true,
+            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -821,10 +1257,9 @@ private fun WakeSection(
             Text(stringResource(R.string.tci_wake_time), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.weight(1f))
             BigValue(
-                value = computed.wakeTimeDisplay ?: "—",
+                value = live?.wakeDisplay ?: "—",
                 unit = "",
                 style = MaterialTheme.typography.headlineMedium,
-                live = true,
             )
         }
         Text(
@@ -837,6 +1272,14 @@ private fun WakeSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (live == null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.tci_wake_needs_session),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -868,36 +1311,45 @@ private fun ReviewDialog(
 ) {
     val form = state.form
     val computed = state.computed
-    val sexLabel =
-        if (form.sex == Sex.MALE) stringResource(R.string.tci_sex_male) else stringResource(R.string.tci_sex_female)
-    val patient =
-        if (form.model == TciModel.SCHNIDER) {
-            "${form.weightText} ${stringResource(R.string.tci_kg)} · " +
-                "${form.heightText} ${stringResource(R.string.tci_cm)} · " +
-                "${form.ageText} ${stringResource(R.string.tci_years)} · $sexLabel"
-        } else {
-            "${form.weightText} ${stringResource(R.string.tci_kg)}"
-        }
-    val concentration =
-        if (form.concentrationMgPerMl == BigDecimal("20")) {
-            stringResource(R.string.tci_concentration_20)
-        } else {
-            stringResource(R.string.tci_concentration_10)
-        }
+    val patient = reviewPatientLabel(form)
+    val concentration = reviewConcentrationLabel(form)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tci_review_title)) },
         text = {
             Column {
-                ReviewRow(stringResource(R.string.tci_review_model), if (form.model == TciModel.MARSH) "Marsh" else "Schnider")
-                ReviewRow(stringResource(R.string.tci_review_mode), stringResource(if (form.mode == TargetMode.PLASMA) R.string.tci_mode_plasma else R.string.tci_mode_effect))
+                ReviewRow(
+                    stringResource(R.string.tci_review_model),
+                    if (form.model == TciModel.MARSH) "Marsh" else "Schnider",
+                )
+                ReviewRow(
+                    stringResource(R.string.tci_review_mode),
+                    stringResource(
+                        if (form.mode ==
+                            TargetMode.PLASMA
+                        ) {
+                            R.string.tci_mode_plasma
+                        } else {
+                            R.string.tci_mode_effect
+                        },
+                    ),
+                )
                 ReviewRow(stringResource(R.string.tci_review_patient), patient)
                 ReviewRow(stringResource(R.string.tci_review_concentration), concentration)
-                ReviewRow(stringResource(R.string.tci_review_target), form.targetText + " " + stringResource(R.string.tci_mcg_ml))
+                ReviewRow(
+                    stringResource(R.string.tci_review_target),
+                    form.targetText + " " + stringResource(R.string.tci_mcg_ml),
+                )
                 if (computed != null) {
-                    ReviewRow(stringResource(R.string.tci_review_bolus), computed.bolusMlDisplay + " " + stringResource(R.string.tci_ml))
-                    ReviewRow(stringResource(R.string.tci_review_rate), computed.maintenanceStartDisplay + " " + stringResource(R.string.tci_ml_h))
+                    ReviewRow(
+                        stringResource(R.string.tci_review_bolus),
+                        computed.bolusMlDisplay + " " + stringResource(R.string.tci_ml),
+                    )
+                    ReviewRow(
+                        stringResource(R.string.tci_review_rate),
+                        computed.maintenanceStartDisplay + " " + stringResource(R.string.tci_ml_h),
+                    )
                 }
             }
         },
@@ -908,7 +1360,31 @@ private fun ReviewDialog(
 }
 
 @Composable
-private fun ReviewRow(label: String, value: String) {
+private fun reviewPatientLabel(form: TciForm): String {
+    val sexLabel =
+        if (form.sex == Sex.MALE) stringResource(R.string.tci_sex_male) else stringResource(R.string.tci_sex_female)
+    return if (form.model == TciModel.SCHNIDER) {
+        "${form.weightText} ${stringResource(R.string.tci_kg)} · " +
+            "${form.heightText} ${stringResource(R.string.tci_cm)} · " +
+            "${form.ageText} ${stringResource(R.string.tci_years)} · $sexLabel"
+    } else {
+        "${form.weightText} ${stringResource(R.string.tci_kg)}"
+    }
+}
+
+@Composable
+private fun reviewConcentrationLabel(form: TciForm): String =
+    if (form.concentrationMgPerMl == BigDecimal("20")) {
+        stringResource(R.string.tci_concentration_20)
+    } else {
+        stringResource(R.string.tci_concentration_10)
+    }
+
+@Composable
+private fun ReviewRow(
+    label: String,
+    value: String,
+) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

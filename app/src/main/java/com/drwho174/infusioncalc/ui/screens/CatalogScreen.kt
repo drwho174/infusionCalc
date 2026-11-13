@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.drwho174.infusioncalc.ui.screens
 
 import androidx.compose.foundation.background
@@ -218,8 +220,7 @@ private fun TciCatalogItem(onOpen: () -> Unit) {
                     .background(
                         color = MaterialTheme.colorScheme.errorContainer,
                         shape = MaterialTheme.shapes.small,
-                    )
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                    ).padding(horizontal = 8.dp, vertical = 2.dp),
         )
     }
 }
