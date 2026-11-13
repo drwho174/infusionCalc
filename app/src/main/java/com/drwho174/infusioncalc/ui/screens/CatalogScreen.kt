@@ -1,5 +1,6 @@
 package com.drwho174.infusioncalc.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,7 @@ import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 fun CatalogScreen(
     viewModel: CatalogViewModel,
     onOpenDrug: (String) -> Unit,
+    onOpenTci: () -> Unit,
     onAddDrug: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -88,6 +90,7 @@ fun CatalogScreen(
             CatalogBody(
                 state = state,
                 onOpenDrug = onOpenDrug,
+                onOpenTci = onOpenTci,
                 onAddDrug = onAddDrug,
                 onAddToFolder = { showAddDrugsDialog = true },
             )
@@ -155,15 +158,23 @@ private fun CatalogChips(
 private fun CatalogBody(
     state: CatalogUiState,
     onOpenDrug: (String) -> Unit,
+    onOpenTci: () -> Unit,
     onAddDrug: () -> Unit,
     onAddToFolder: () -> Unit,
 ) {
     val currentFolder = state.selectedFolderId?.let { id -> state.folders.firstOrNull { it.id == id } }
     val folderSelected = currentFolder != null
-    if (state.filtered.isEmpty() && !folderSelected) {
+    val showTci = state.selectedFolderId == null && tciMatchesQuery(state.query)
+    if (state.filtered.isEmpty() && !folderSelected && !showTci) {
         EmptyCatalogState(onAddDrug = onAddDrug)
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (showTci) {
+                item(key = "tci_entry") {
+                    TciCatalogItem(onOpen = onOpenTci)
+                    HorizontalDivider()
+                }
+            }
             items(state.filtered, key = { it.id }) { drug ->
                 DrugListItem(drug = drug, onOpen = { onOpenDrug(drug.id) })
                 HorizontalDivider()
@@ -174,6 +185,42 @@ private fun CatalogBody(
                 }
             }
         }
+    }
+}
+
+private fun tciMatchesQuery(query: String): Boolean {
+    if (query.isBlank()) return true
+    val q = query.trim()
+    return listOf("tci", "propofol", "пропофол").any { it.contains(q, ignoreCase = true) }
+}
+
+@Composable
+private fun TciCatalogItem(onOpen: () -> Unit) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpen)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.tci_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.tci_badge),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier =
+                Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    )
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+        )
     }
 }
 

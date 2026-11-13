@@ -16,5 +16,6 @@ internal val navSerializersModule =
             subclass(DrugCardKey::class)
             subclass(EditorKey::class)
             subclass(SettingsKey::class)
+            subclass(TciKey::class)
         }
     }

@@ -17,6 +17,7 @@ import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.DrugCardViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.EditorViewModel
+import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.WeightViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -48,4 +49,5 @@ val appModule =
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
+        viewModel { TciViewModel() }
     }
