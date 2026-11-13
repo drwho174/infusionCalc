@@ -20,18 +20,20 @@ fun FolderNameField(
     onCreate: () -> Unit,
 ) {
     val trimmed = name.trim()
-    val duplicate = trimmed.isNotEmpty() && existingNames.any { it.equals(trimmed, ignoreCase = true) }
+    val reserved = trimmed.lowercase() in Folder.RESERVED_NAMES
+    val duplicate = trimmed.isNotEmpty() && !reserved && existingNames.any { it.equals(trimmed, ignoreCase = true) }
     val tooLong = trimmed.length > Folder.MAX_NAME_LENGTH
-    val canCreate = trimmed.isNotEmpty() && !duplicate && !tooLong
+    val canCreate = trimmed.isNotEmpty() && !duplicate && !reserved && !tooLong
 
     Column {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             label = { Text(stringResource(R.string.folder_name)) },
-            isError = duplicate || tooLong,
+            isError = duplicate || tooLong || reserved,
             supportingText = {
                 when {
+                    reserved -> Text(stringResource(R.string.folder_reserved))
                     duplicate -> Text(stringResource(R.string.folder_exists))
                     tooLong -> Text(stringResource(R.string.folder_name_too_long))
                 }

@@ -158,7 +158,8 @@ private fun CatalogBody(
     onAddDrug: () -> Unit,
     onAddToFolder: () -> Unit,
 ) {
-    val folderSelected = state.selectedFolderId != null
+    val currentFolder = state.selectedFolderId?.let { id -> state.folders.firstOrNull { it.id == id } }
+    val folderSelected = currentFolder != null
     if (state.filtered.isEmpty() && !folderSelected) {
         EmptyCatalogState(onAddDrug = onAddDrug)
     } else {

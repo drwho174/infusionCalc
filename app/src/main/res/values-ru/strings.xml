@@ -38,6 +38,7 @@
     <string name="create">Создать</string>
     <string name="folder_exists">Папка с таким названием уже есть</string>
     <string name="folder_name_too_long">Слишком длинное название</string>
+    <string name="folder_reserved">Это имя зарезервировано</string>
     <string name="delete_folder_title">Удалить папку?</string>
     <string name="delete_folder_body">Папка будет удалена. Препараты останутся в «Все».</string>
     <string name="done">Готово</string>

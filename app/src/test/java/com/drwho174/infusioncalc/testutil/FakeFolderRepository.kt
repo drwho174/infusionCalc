@@ -23,6 +23,7 @@ class FakeFolderRepository(
         val trimmed = name.trim()
         val valid =
             trimmed.isNotEmpty() &&
+                trimmed.lowercase() !in Folder.RESERVED_NAMES &&
                 trimmed.length <= Folder.MAX_NAME_LENGTH &&
                 folders.value.none { it.name.equals(trimmed, ignoreCase = true) }
         if (!valid) return null

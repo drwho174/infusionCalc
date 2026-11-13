@@ -38,6 +38,7 @@
     <string name="create">Create</string>
     <string name="folder_exists">A folder with this name already exists</string>
     <string name="folder_name_too_long">Name is too long</string>
+    <string name="folder_reserved">This name is reserved</string>
     <string name="delete_folder_title">Delete folder?</string>
     <string name="delete_folder_body">The folder will be deleted. Drugs stay in All.</string>
     <string name="done">Done</string>

@@ -32,6 +32,7 @@ class RoomFolderRepository(
             val trimmed = name.trim()
             if (trimmed.isEmpty() || trimmed.length > Folder.MAX_NAME_LENGTH) return@withContext null
             val normalized = trimmed.lowercase()
+            if (normalized in Folder.RESERVED_NAMES) return@withContext null
             if (dao.countByName(normalized) > 0) return@withContext null
             val folder = Folder(id = UUID.randomUUID().toString(), name = trimmed)
             dao.insertFolder(
