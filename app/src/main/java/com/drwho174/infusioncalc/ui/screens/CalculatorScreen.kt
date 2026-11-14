@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,7 +58,6 @@ import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
     onBack: () -> Unit,
-    onOpenCard: () -> Unit,
     onEditDrug: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,18 +71,17 @@ fun CalculatorScreen(
         state = state,
         viewModel = viewModel,
         onBack = onBack,
-        onOpenCard = onOpenCard,
         onEditDrug = onEditDrug,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun CalculatorContent(
     state: CalculatorUiState,
     viewModel: CalculatorViewModel,
     onBack: () -> Unit,
-    onOpenCard: () -> Unit,
     onEditDrug: () -> Unit,
 ) {
     val drug = state.drug ?: return
@@ -126,12 +123,6 @@ private fun CalculatorContent(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = stringResource(R.string.folders),
-                        )
-                    }
-                    IconButton(onClick = onOpenCard) {
-                        Icon(
-                            imageVector = Icons.Filled.Info,
-                            contentDescription = stringResource(R.string.card),
                         )
                     }
                     IconButton(

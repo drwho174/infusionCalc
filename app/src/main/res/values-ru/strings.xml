@@ -60,7 +60,6 @@
     <string name="warning_above_title">Доза выше указанного диапазона</string>
     <string name="warning_check">Проверьте единицы, вес и концентрацию</string>
     <string name="concentration">Концентрация</string>
-    <string name="no_concentration">Нет концентрации</string>
     <string name="dose">Доза</string>
     <string name="rate">Скорость инфузии</string>
     <string name="rate_unit">мл/ч</string>
@@ -73,7 +72,6 @@
     <string name="weight_required">Укажите вес при запуске — без него расчёт на кг невозможен</string>
     <string name="disclaimer_short">Калькулятор не заменяет назначение врача</string>
     <string name="edit_drug">Изменить препарат</string>
-    <string name="card">Карточка</string>
     <string name="no_presets">Нет пресетов</string>
     <string name="delete_drug_title">Удалить препарат?</string>
     <string name="delete_drug_body">Препарат и его концентрации будут удалены. Действие необратимо.</string>
@@ -82,14 +80,10 @@
     <string name="ok">ОК</string>
 
     <!-- drug card -->
-    <string name="card_title_catalog">Каталог</string>
-    <string name="card_title_mine">Мой препарат</string>
-    <string name="section_dosing">Дозирование</string>
     <string name="section_concentrations">Концентрации</string>
     <string name="add_concentration">Добавить концентрацию</string>
     <string name="edit_concentration">Изменить концентрацию</string>
     <string name="delete">Удалить</string>
-    <string name="edit">Изменить</string>
     <string name="section_notes">Заметки</string>
     <string name="to_calc">К расчёту</string>
 
@@ -104,12 +98,8 @@
     <string name="per_hour">в час</string>
     <string name="range_from">Диапазон от</string>
     <string name="range_to">до</string>
-    <string name="concentration_preset">Концентрация (пресет)</string>
     <string name="mass">Масса</string>
-    <string name="mass_unit">Единица массы</string>
     <string name="volume">Объём, мл</string>
-    <string name="concentration_preview">= %1$s %2$s/мл</string>
-    <string name="concentration_empty">Укажите массу и объём</string>
     <string name="duplicate_name">Препарат с таким названием уже есть</string>
 
     <!-- settings -->
@@ -242,6 +232,8 @@
     <string name="tci_models_title">Модели TCI</string>
     <string name="tci_models_action">Справка по моделям</string>
 </resources>
+
+
 
 
 

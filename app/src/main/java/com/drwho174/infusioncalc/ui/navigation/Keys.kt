@@ -18,11 +18,6 @@ data class CalculatorKey(
 ) : NavKey
 
 @Serializable
-data class DrugCardKey(
-    val drugId: String,
-) : NavKey
-
-@Serializable
 data class EditorKey(
     val drugId: String? = null,
 ) : NavKey

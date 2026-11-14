@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import java.math.MathContext
 import java.util.UUID
 
 data class EditorUiState(
@@ -30,19 +29,20 @@ data class EditorUiState(
     val timeBase: TimeBase = TimeBase.PER_MINUTE,
     val doseMin: String = "",
     val doseMax: String = "",
-    val mass: String = "",
-    val volume: String = "",
-    val massUnit: AmountUnit = AmountUnit.MCG,
-    val concentration: BigDecimal? = null,
+    val notes: String = "",
+    val presets: List<ConcentrationPreset> = emptyList(),
+    val selectedPresetId: String? = null,
     val duplicateName: Boolean = false,
     val valid: Boolean = false,
 )
 
 /**
- * Редактор карточки препарата. Правка встроенного препарата сохраняется **на месте**:
- * копия с тем же названием создавала бы дубликат в списке (баг FR-CUSTOM-06).
+ * Единый редактор препарата: дозирование, концентрации и заметки.
+ * Правка встроенного препарата сохраняется **на месте**: копия с тем же
+ * названием создавала бы дубликат в списке (баг FR-CUSTOM-06).
  * От перезаписи сидом правку защищает [revision] > 1 (см. [CatalogSeeder]).
  */
+@Suppress("TooManyFunctions")
 class EditorViewModel(
     private val initialDrugId: String?,
     private val repository: DrugRepository,
@@ -74,11 +74,67 @@ class EditorViewModel(
 
     fun onDoseMaxChange(value: String) = update { it.copy(doseMax = normalizeDecimalInput(value)) }
 
-    fun onMassChange(value: String) = update { it.copy(mass = normalizeDecimalInput(value)) }
+    fun onNotesChange(value: String) = update { it.copy(notes = value) }
 
-    fun onVolumeChange(value: String) = update { it.copy(volume = normalizeDecimalInput(value)) }
+    fun onPresetSelected(id: String) = update { it.copy(selectedPresetId = id) }
 
-    fun onMassUnitChange(value: AmountUnit) = update { it.copy(massUnit = value) }
+    /** Новая концентрация из диалога: чипсы в блоке «Концентрации». */
+    fun addPreset(
+        amount: BigDecimal,
+        amountUnit: AmountUnit,
+        volumeMl: BigDecimal,
+    ) {
+        val preset =
+            ConcentrationPreset(
+                id = UUID.randomUUID().toString(),
+                drugId = existing?.id.orEmpty(),
+                mode = ConcentrationMode.MASS_VOLUME,
+                amount = amount,
+                amountUnit = amountUnit,
+                volumeMl = volumeMl,
+            )
+        update { it.copy(presets = it.presets + preset, selectedPresetId = preset.id) }
+    }
+
+    fun updatePreset(
+        id: String,
+        amount: BigDecimal,
+        amountUnit: AmountUnit,
+        volumeMl: BigDecimal,
+    ) {
+        update { state ->
+            state.copy(
+                presets =
+                    state.presets.map {
+                        if (it.id == id) {
+                            it.copy(
+                                mode = ConcentrationMode.MASS_VOLUME,
+                                amount = amount,
+                                amountUnit = amountUnit,
+                                volumeMl = volumeMl,
+                            )
+                        } else {
+                            it
+                        }
+                    },
+            )
+        }
+    }
+
+    fun deletePreset(id: String) {
+        update { state ->
+            if (state.presets.size <= 1) {
+                state
+            } else {
+                val remaining = state.presets.filterNot { it.id == id }
+                state.copy(
+                    presets = remaining,
+                    selectedPresetId =
+                        if (state.selectedPresetId == id) remaining.firstOrNull()?.id else state.selectedPresetId,
+                )
+            }
+        }
+    }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun save(onSaved: (String) -> Unit) {
@@ -90,7 +146,6 @@ class EditorViewModel(
         val id = base?.id ?: UUID.randomUUID().toString()
 
         val schemeId = base?.defaultScheme?.id ?: UUID.randomUUID().toString()
-        val presetId = base?.defaultPreset?.id ?: UUID.randomUUID().toString()
         val editedScheme =
             DoseScheme(
                 id = schemeId,
@@ -102,28 +157,20 @@ class EditorViewModel(
                 doseMax = current.doseMax.toBigDecimalOrNull(),
                 schemeOrder = base?.defaultScheme?.schemeOrder ?: 0,
             )
-        val editedPreset =
-            ConcentrationPreset(
-                id = presetId,
-                drugId = id,
-                mode = base?.defaultPreset?.mode ?: ConcentrationMode.MASS_VOLUME,
-                amount = current.mass.toBigDecimalOrNull(),
-                amountUnit = current.massUnit,
-                volumeMl = current.volume.toBigDecimalOrNull(),
-                isDefault = true,
-            )
-        // Встроенный препарат правится на месте: остальные схемы и пресеты сохраняются.
+        val selectedId = current.selectedPresetId ?: current.presets.firstOrNull()?.id
+        val presets =
+            current.presets.map {
+                it.copy(
+                    drugId = id,
+                    isDefault = it.id == selectedId,
+                )
+            }
+        // Встроенный препарат правится на месте: остальные схемы сохраняются.
         val schemes =
             if (keptBuiltIn) {
                 base!!.schemes.map { if (it.id == schemeId) editedScheme else it }
             } else {
                 listOf(editedScheme)
-            }
-        val presets =
-            if (keptBuiltIn) {
-                base!!.presets.map { if (it.id == presetId) editedPreset else it }
-            } else {
-                listOf(editedPreset)
             }
         val drug =
             Drug(
@@ -136,7 +183,7 @@ class EditorViewModel(
                 isBuiltIn = keptBuiltIn,
                 derivedFromId = base?.derivedFromId,
                 verification = base?.verification ?: Verification.USER,
-                notes = base?.notes,
+                notes = current.notes.trim().ifBlank { null },
                 incompatibilities = base?.incompatibilities,
                 revision = (base?.revision ?: 0) + 1,
                 catalogVersion = base?.catalogVersion ?: 0,
@@ -156,28 +203,18 @@ class EditorViewModel(
     }
 
     private fun derive(state: EditorUiState): EditorUiState {
-        val mass = state.mass.toBigDecimalOrNull()
-        val volume = state.volume.toBigDecimalOrNull()
-        val concentration =
-            if (mass != null && volume != null && volume.signum() > 0) {
-                mass.divide(volume, MathContext(34))
-            } else {
-                null
-            }
         val duplicate = isDuplicateName(state.name)
         val valid =
             state.name.isNotBlank() &&
                 !duplicate &&
-                mass != null &&
-                mass.signum() > 0 &&
-                volume != null &&
-                volume.signum() > 0
-        return state.copy(concentration = concentration, duplicateName = duplicate, valid = valid)
+                state.presets.isNotEmpty() &&
+                state.presets.all { it.concentrationIn() != null }
+        return state.copy(duplicateName = duplicate, valid = valid)
     }
 
     /**
      * Новый препарат не должен совпадать по названию ни с одним существующим.
-     * Для правки/копии проверяются только пользовательские препараты: копия
+     * Для правки проверяются только пользовательские препараты: копия
      * встроенного намеренно носит имя оригинала.
      */
     private fun isDuplicateName(rawName: String): Boolean {
@@ -198,7 +235,7 @@ class EditorViewModel(
 
     private fun prefilled(drug: Drug): EditorUiState {
         val scheme = drug.defaultScheme
-        val preset = drug.defaultPreset
+        val defaultPreset = drug.defaultPreset
         return derive(
             EditorUiState(
                 isLoaded = true,
@@ -209,9 +246,9 @@ class EditorViewModel(
                 timeBase = scheme?.perTime ?: TimeBase.PER_MINUTE,
                 doseMin = scheme?.doseMin?.toPlainString() ?: "",
                 doseMax = scheme?.doseMax?.toPlainString() ?: "",
-                mass = preset?.amount?.toPlainString() ?: "",
-                volume = preset?.volumeMl?.toPlainString() ?: "",
-                massUnit = preset?.amountUnit ?: AmountUnit.MCG,
+                notes = drug.notes.orEmpty(),
+                presets = drug.presets,
+                selectedPresetId = defaultPreset?.id,
             ),
         )
     }
