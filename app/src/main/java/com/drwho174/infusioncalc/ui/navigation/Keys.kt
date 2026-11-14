@@ -32,3 +32,6 @@ data object SettingsKey : NavKey
 
 @Serializable
 data object TciKey : NavKey
+
+@Serializable
+data object TciModelsKey : NavKey

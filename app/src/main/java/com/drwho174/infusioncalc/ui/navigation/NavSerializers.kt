@@ -17,5 +17,6 @@ internal val navSerializersModule =
             subclass(EditorKey::class)
             subclass(SettingsKey::class)
             subclass(TciKey::class)
+            subclass(TciModelsKey::class)
         }
     }

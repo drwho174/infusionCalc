@@ -1,0 +1,71 @@
+package com.drwho174.infusioncalc.ui.components
+
+import android.widget.TextView
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.latex.JLatexMathPlugin
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin
+
+private const val LINE_SPACING_EXTRA = 0f
+private const val LINE_SPACING_MULTIPLIER = 1.15f
+
+/**
+ * Markdown-текст справки.
+ *
+ * В assets лежит разметка с формулами LaTeX (`$$...$$`), таблицами и `<br>`,
+ * поэтому используется Markwon с теми же плагинами, что и в Calc1.
+ */
+@Composable
+fun MarkdownText(
+    markdown: String,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val baseTextSizePx = with(density) { 16.sp.toPx() }
+
+    val markwon =
+        remember(context, baseTextSizePx) {
+            Markwon
+                .builder(context)
+                .usePlugin(MarkwonInlineParserPlugin.create())
+                .usePlugin(HtmlPlugin.create())
+                .usePlugin(TablePlugin.create(context))
+                .usePlugin(
+                    JLatexMathPlugin.create(baseTextSizePx) { builder ->
+                        builder.inlinesEnabled(true)
+                    },
+                ).build()
+        }
+
+    // Цвета читаем в композиции: TextView не знает о Compose-теме и иначе
+    // в тёмной теме берёт тёмный цвет из XML-темы активити.
+    val contentColor = MaterialTheme.colorScheme.onBackground
+    val linkColor = MaterialTheme.colorScheme.primary
+
+    AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { ctx ->
+            TextView(ctx).apply {
+                setTextIsSelectable(true)
+                setLineSpacing(LINE_SPACING_EXTRA, LINE_SPACING_MULTIPLIER)
+            }
+        },
+        update = { textView ->
+            textView.setTextColor(contentColor.toArgb())
+            textView.setLinkTextColor(linkColor.toArgb())
+            markwon.setMarkdown(textView, markdown)
+        },
+    )
+}

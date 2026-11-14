@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -126,6 +127,7 @@ private const val CURSOR_DASH_OFF = 6f
 fun TciScreen(
     viewModel: TciViewModel,
     onBack: () -> Unit,
+    onOpenHelp: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val form = state.form
@@ -240,6 +242,12 @@ fun TciScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenHelp) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_info),
+                            contentDescription = stringResource(R.string.tci_models_action),
+                        )
+                    }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
