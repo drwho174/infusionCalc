@@ -22,6 +22,7 @@ data class TciSessionSnapshot(
     val status: String,
     val accumulatedSeconds: Int,
     val runningSinceEpochMs: Long?,
+    val pausedAtEpochMs: Long? = null,
     val manualFromSeconds: Int?,
     val manualRateMlPerHour: String?,
     val confirmedOffsets: List<Int>,

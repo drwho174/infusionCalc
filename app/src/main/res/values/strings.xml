@@ -124,7 +124,6 @@
 
     <!-- tci card -->
     <string name="tci_title">Propofol (TCI)</string>
-    <string name="tci_review">Verify</string>
     <string name="tci_badge">TCI</string>
     <string name="tci_disclaimer">This TCI card predicts propofol concentration using a population pharmacokinetic model (Marsh/Schnider) from the data you enter. The prediction is not a measured concentration and does not replace clinical judgement of anaesthetic depth or monitoring. Propofol TCI must only be performed by experienced anaesthetists, for induction and maintenance of anaesthesia in adults only; not for sedation and not in children. Rates and stage timings are entered into the pump manually; always verify the model, patient, concentration and target against the order and the product label. Administration remains the responsibility of the healthcare professional.</string>
     <string name="tci_info_prediction">Cp/Ce is a population-model prediction, not a measured concentration.</string>
@@ -184,14 +183,6 @@
     <string name="tci_warn_target">Target concentration %1$s mcg/mL is outside the recommended range (%2$s). Check the phase and target.</string>
     <string name="tci_confirm_reset">Changing %1$s will reset the calculation. Continue?</string>
     <string name="tci_continue">Continue</string>
-    <string name="tci_review_title">Check before induction</string>
-    <string name="tci_review_model">Model</string>
-    <string name="tci_review_mode">Mode</string>
-    <string name="tci_review_patient">Patient</string>
-    <string name="tci_review_concentration">Concentration</string>
-    <string name="tci_review_target">Target</string>
-    <string name="tci_review_bolus">Bolus</string>
-    <string name="tci_review_rate">Rate</string>
     <string name="tci_not_ready">Enter patient data to calculate.</string>
     <string name="tci_session_title">Infusion session</string>
     <string name="tci_session_idle">Your pump has no TCI mode. Start the session and set the rates manually as prompted.</string>
@@ -232,6 +223,9 @@
     <string name="tci_bolus_infusion">Bolus %1$s mL over %2$s</string>
     <string name="tci_return_auto">Back to automatic programme</string>
     <string name="tci_target_change_hint">The target can be changed during infusion — the bolus is recalculated.</string>
+    <string name="tci_confirm_reset_title">Confirm</string>
+    <string name="tci_wake_countdown">Countdown after pause: the infusion is stopped</string>
 </resources>
+
 
 

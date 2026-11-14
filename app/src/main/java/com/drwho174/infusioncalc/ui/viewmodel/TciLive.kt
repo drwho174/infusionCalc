@@ -28,6 +28,8 @@ data class TciLive(
     val cpDisplay: String,
     val ceDisplay: String,
     val wakeDisplay: String?,
+    /** Секунды до пробуждения; при паузе — обратный отсчёт от момента паузы. */
+    val wakeRemainingSeconds: Int?,
     val curve: List<SimStep>,
     val state: TciState?,
 )
@@ -35,11 +37,13 @@ data class TciLive(
 /** Порог, после которого неподтверждённая уставка считается просроченной. */
 internal const val OVERDUE_SECONDS = 60
 
+private const val MS_PER_SECOND = 1_000L
+
 /**
  * Собирает живое состояние из плана, формы и сессии. Чистая функция:
  * время передаётся снаружи, поэтому её легко проверять тестами.
  */
-@Suppress("CyclomaticComplexMethod", "LongParameterList")
+@Suppress("CyclomaticComplexMethod", "LongParameterList", "LongMethod")
 internal fun buildLive(
     plan: PumpPlan,
     form: TciForm,
@@ -91,19 +95,30 @@ internal fun buildLive(
             )
         }
 
+    val wakeRemaining =
+        when {
+            wakeSeconds == null -> null
+            session.status == TciSessionStatus.PAUSED && session.pausedAtEpochMs != null -> {
+                val sincePause = ((nowMs - session.pausedAtEpochMs) / MS_PER_SECOND).toInt().coerceAtLeast(0)
+                (wakeSeconds - sincePause).coerceAtLeast(0)
+            }
+            else -> wakeSeconds
+        }
+
     return TciLive(
         elapsedSeconds = elapsed,
         phase = advice.phase,
-        currentRateMlPerHour = advice.rate,
+        currentRateMlPerHour = advice.rate?.let { TciEngine.formatRateMlPerHour(it) },
         stepOffsetSeconds = advice.offset,
         nextChangeInSeconds = advice.nextIn,
-        nextRateMlPerHour = advice.nextRate,
+        nextRateMlPerHour = advice.nextRate?.let { TciEngine.formatRateMlPerHour(it) },
         confirmed = advice.confirmed,
         overdue = advice.overdue,
         manual = manualActive,
         cpDisplay = point?.cpMcgPerMl?.let { TciEngine.formatConcentrationMcgMl(it).display() } ?: "—",
         ceDisplay = point?.ceMcgPerMl?.let { TciEngine.formatConcentrationMcgMl(it).display() } ?: "—",
-        wakeDisplay = formatWakeTime(wakeSeconds),
+        wakeDisplay = formatWakeTime(wakeRemaining),
+        wakeRemainingSeconds = wakeRemaining,
         curve = curve,
         state = state,
     )

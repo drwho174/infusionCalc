@@ -18,6 +18,8 @@ data class TciSession(
     val status: TciSessionStatus = TciSessionStatus.IDLE,
     val accumulatedSeconds: Int = 0,
     val runningSinceEpochMs: Long? = null,
+    /** Момент паузы — от него идёт обратный отсчёт до пробуждения. */
+    val pausedAtEpochMs: Long? = null,
     val manualFromSeconds: Int? = null,
     val manualRateMlPerHour: BigDecimal? = null,
     val confirmedOffsets: Set<Int> = emptySet(),
@@ -53,6 +55,7 @@ data class TciSession(
                 status = TciSessionStatus.PAUSED,
                 accumulatedSeconds = elapsedSeconds(nowMs),
                 runningSinceEpochMs = null,
+                pausedAtEpochMs = nowMs,
             )
         }
 
@@ -60,7 +63,11 @@ data class TciSession(
         if (status != TciSessionStatus.PAUSED) {
             this
         } else {
-            copy(status = TciSessionStatus.RUNNING, runningSinceEpochMs = nowMs)
+            copy(
+                status = TciSessionStatus.RUNNING,
+                runningSinceEpochMs = nowMs,
+                pausedAtEpochMs = null,
+            )
         }
 
     fun stop(): TciSession = TciSession()

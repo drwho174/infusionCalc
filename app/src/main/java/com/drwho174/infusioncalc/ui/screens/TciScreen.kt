@@ -124,7 +124,6 @@ fun TciScreen(
     val live = state.live
     val active = session.isActive
 
-    var showReview by remember { mutableStateOf(false) }
     var pendingModel by remember { mutableStateOf<TciModel?>(null) }
     var pendingMode by remember { mutableStateOf<TargetMode?>(null) }
     var dismissedDisclaimer by remember { mutableStateOf(false) }
@@ -211,9 +210,6 @@ fun TciScreen(
                             contentDescription = stringResource(R.string.tci_settings),
                         )
                     }
-                    TextButton(onClick = { showReview = true }) {
-                        Text(stringResource(R.string.tci_review), color = MaterialTheme.colorScheme.error)
-                    }
                 },
             )
         },
@@ -226,16 +222,6 @@ fun TciScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
-            Spacer(Modifier.height(12.dp))
-            SessionSection(
-                state = state,
-                onStart = viewModel::start,
-                onPause = viewModel::pause,
-                onResume = viewModel::resume,
-                onStop = viewModel::stop,
-            )
-
-            Spacer(Modifier.height(12.dp))
             ModelModeSection(
                 form = form,
                 enabled = !active,
@@ -279,9 +265,18 @@ fun TciScreen(
                 Spacer(Modifier.height(12.dp))
                 BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
                 Spacer(Modifier.height(12.dp))
+                SessionSection(
+                    state = state,
+                    onStart = viewModel::start,
+                    onPause = viewModel::pause,
+                    onResume = viewModel::resume,
+                    onStop = viewModel::stop,
+                )
+                Spacer(Modifier.height(12.dp))
                 WakeSection(
                     form = form,
                     live = live,
+                    paused = session.status == TciSessionStatus.PAUSED,
                     enabled = !active,
                     onThresholdChange = viewModel::onThresholdChange,
                 )
@@ -301,10 +296,6 @@ fun TciScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-    }
-
-    if (showReview) {
-        ReviewDialog(state = state, onDismiss = { showReview = false })
     }
 
     pendingModel?.let { model ->
@@ -954,7 +945,7 @@ private fun BolusSection(
         if (computed.bmiDisplay != null) {
             Spacer(Modifier.height(4.dp))
             Text(
-                stringResource(R.string.tci_review_patient) + ": BMI " + computed.bmiDisplay,
+                "BMI " + computed.bmiDisplay,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -1252,6 +1243,7 @@ private fun formatElapsed(seconds: Int): String {
 private fun WakeSection(
     form: TciForm,
     live: TciLive?,
+    paused: Boolean,
     enabled: Boolean,
     onThresholdChange: (String) -> Unit,
 ) {
@@ -1277,7 +1269,7 @@ private fun WakeSection(
             )
         }
         Text(
-            stringResource(R.string.tci_wake_prediction),
+            stringResource(if (paused) R.string.tci_wake_countdown else R.string.tci_wake_prediction),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1307,7 +1299,7 @@ private fun ConfirmResetDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.tci_review_title)) },
+        title = { Text(stringResource(R.string.tci_confirm_reset_title)) },
         text = { Text(stringResource(R.string.tci_confirm_reset, subject)) },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text(stringResource(R.string.tci_continue)) }
@@ -1316,93 +1308,6 @@ private fun ConfirmResetDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
-}
-
-@Composable
-private fun ReviewDialog(
-    state: TciUiState,
-    onDismiss: () -> Unit,
-) {
-    val form = state.form
-    val computed = state.computed
-    val patient = reviewPatientLabel(form)
-    val concentration = reviewConcentrationLabel(form)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.tci_review_title)) },
-        text = {
-            Column {
-                ReviewRow(
-                    stringResource(R.string.tci_review_model),
-                    if (form.model == TciModel.MARSH) "Marsh" else "Schnider",
-                )
-                ReviewRow(
-                    stringResource(R.string.tci_review_mode),
-                    stringResource(
-                        if (form.mode ==
-                            TargetMode.PLASMA
-                        ) {
-                            R.string.tci_mode_plasma
-                        } else {
-                            R.string.tci_mode_effect
-                        },
-                    ),
-                )
-                ReviewRow(stringResource(R.string.tci_review_patient), patient)
-                ReviewRow(stringResource(R.string.tci_review_concentration), concentration)
-                ReviewRow(
-                    stringResource(R.string.tci_review_target),
-                    form.targetText + " " + stringResource(R.string.tci_mcg_ml),
-                )
-                if (computed != null) {
-                    ReviewRow(
-                        stringResource(R.string.tci_review_bolus),
-                        computed.bolusMlDisplay + " " + stringResource(R.string.tci_ml),
-                    )
-                    ReviewRow(
-                        stringResource(R.string.tci_review_rate),
-                        computed.maintenanceStartDisplay + " " + stringResource(R.string.tci_ml_h),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ok)) }
-        },
-    )
-}
-
-@Composable
-private fun reviewPatientLabel(form: TciForm): String {
-    val sexLabel =
-        if (form.sex == Sex.MALE) stringResource(R.string.tci_sex_male) else stringResource(R.string.tci_sex_female)
-    return if (form.model == TciModel.SCHNIDER) {
-        "${form.weightText} ${stringResource(R.string.tci_kg)} · " +
-            "${form.heightText} ${stringResource(R.string.tci_cm)} · " +
-            "${form.ageText} ${stringResource(R.string.tci_years)} · $sexLabel"
-    } else {
-        "${form.weightText} ${stringResource(R.string.tci_kg)}"
-    }
-}
-
-@Composable
-private fun reviewConcentrationLabel(form: TciForm): String =
-    if (form.concentrationMgPerMl == BigDecimal("20")) {
-        stringResource(R.string.tci_concentration_20)
-    } else {
-        stringResource(R.string.tci_concentration_10)
-    }
-
-@Composable
-private fun ReviewRow(
-    label: String,
-    value: String,
-) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
 }
 
 // ---------------------------------------------------------------------- общее

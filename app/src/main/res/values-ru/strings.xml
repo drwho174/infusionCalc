@@ -124,7 +124,6 @@
 
     <!-- tci card -->
     <string name="tci_title">Пропофол (TCI)</string>
-    <string name="tci_review">Сверить</string>
     <string name="tci_badge">TCI</string>
     <string name="tci_disclaimer">Карточка TCI выполняет прогноз концентрации пропофола по популяционной фармакокинетической модели (Marsh/Schnider) на основе введённых данных. Прогноз не является измеренной концентрацией, не заменяет клиническую оценку глубины анестезии и мониторинг. TCI пропофола — только опытными анестезиологами, только для индукции и поддержания анестезии у взрослых; не для седации и не у детей. Скорость и время этапов вводятся в насос вручную; всегда сверяйте модель, пациента, концентрацию и цель с назначением и инструкцией. Ответственность за введение препарата несёт медицинский работник.</string>
     <string name="tci_info_prediction">Cp/Ce — прогноз популяционной модели, не измеренная концентрация.</string>
@@ -184,14 +183,6 @@
     <string name="tci_warn_target">Целевая концентрация %1$s мкг/мл вне рекомендуемого диапазона (%2$s). Проверьте фазу и цель.</string>
     <string name="tci_confirm_reset">Смена %1$s сбросит расчёт. Продолжить?</string>
     <string name="tci_continue">Продолжить</string>
-    <string name="tci_review_title">Проверка перед индукцией</string>
-    <string name="tci_review_model">Модель</string>
-    <string name="tci_review_mode">Режим</string>
-    <string name="tci_review_patient">Пациент</string>
-    <string name="tci_review_concentration">Концентрация</string>
-    <string name="tci_review_target">Цель</string>
-    <string name="tci_review_bolus">Болюс</string>
-    <string name="tci_review_rate">Скорость</string>
     <string name="tci_not_ready">Введите данные пациента для расчёта.</string>
     <string name="tci_session_title">Сессия инфузии</string>
     <string name="tci_session_idle">В вашем насосе нет режима TCI. Запустите сессию и выставляйте скорости вручную по подсказкам.</string>
@@ -232,6 +223,9 @@
     <string name="tci_bolus_infusion">Болюс %1$s мл за %2$s</string>
     <string name="tci_return_auto">Вернуться к автоматической программе</string>
     <string name="tci_target_change_hint">Цель можно менять во время инфузии — болюс пересчитается.</string>
+    <string name="tci_confirm_reset_title">Подтверждение</string>
+    <string name="tci_wake_countdown">Обратный отсчёт после паузы: инфузия остановлена</string>
 </resources>
+
 
 

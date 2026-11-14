@@ -70,4 +70,22 @@ class TciLiveTest {
         assertNotNull(live!!.wakeDisplay)
         assertNotNull(live.state)
     }
+
+    @Test
+    fun `pause starts a wake countdown`() {
+        val paused = TciSession().start(0).pause(60_000)
+        val atPause = buildLive(plan, form, paused, 60_000, null)!!
+        val later = buildLive(plan, form, paused, 90_000, null)!!
+
+        assertNotNull(atPause.wakeRemainingSeconds)
+        assertEquals(atPause.wakeRemainingSeconds!! - 30, later.wakeRemainingSeconds)
+        assertNotNull(later.wakeDisplay)
+    }
+
+    @Test
+    fun `rate advice is rounded to one decimal`() {
+        val live = buildLive(plan, form, TciSession().start(0), 300_000, null)!!
+        val rate = live.currentRateMlPerHour!!
+        assertTrue("scale must be 1, was $rate", rate.scale() == 1)
+    }
 }
