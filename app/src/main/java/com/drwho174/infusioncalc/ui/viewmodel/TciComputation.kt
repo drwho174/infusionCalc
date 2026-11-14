@@ -24,6 +24,11 @@ private const val UNUSUAL_WEIGHT_MAX_KG = 200
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_HOUR = 3600
 
+internal const val MIN_STEP = 1
+internal const val MAX_STEP = 15
+internal const val DEFAULT_TABLE_STEP_MINUTES = 5
+internal const val DEFAULT_WARNING_LEAD_MINUTES = 5
+
 /** Редактируемые входные данные карточки TCI (только в памяти сессии, D-TCI-13). */
 data class TciForm(
     val model: TciModel = TciModel.MARSH,
@@ -36,6 +41,10 @@ data class TciForm(
     val sex: Sex = Sex.MALE,
     val targetText: String = "",
     val wakeThresholdText: String = "1.5",
+    /** Шаг таблицы скоростей и ступеней плана, минуты (1–15). */
+    val tableStepMinutes: Int = DEFAULT_TABLE_STEP_MINUTES,
+    /** За сколько минут до следующей коррекции показывать предупреждение (1–15). */
+    val warningLeadMinutes: Int = DEFAULT_WARNING_LEAD_MINUTES,
 ) {
     companion object {
         const val HORIZON_SECONDS = TciEngine.DEFAULT_HORIZON_SECONDS
@@ -154,7 +163,7 @@ internal fun buildTciState(form: TciForm): TciUiState {
             sex = form.sex,
             horizonSeconds = TciForm.HORIZON_SECONDS,
         )
-    val result = TciEngine.pumpPlan(request)
+    val result = TciEngine.pumpPlan(request, stepSeconds = form.tableStepMinutes.coerceIn(MIN_STEP, MAX_STEP) * 60)
     if (result is TciResult.Failure) {
         return TciUiState(form = form, bolusRateMlPerHour = bolusRate, blocking = blockingFrom(result))
     }

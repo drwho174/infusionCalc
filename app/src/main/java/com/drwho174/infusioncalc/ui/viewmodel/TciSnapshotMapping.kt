@@ -24,6 +24,8 @@ internal fun TciForm.toSnapshot(
         sex = sex.name,
         targetText = targetText,
         wakeThresholdText = wakeThresholdText,
+        tableStepMinutes = tableStepMinutes.coerceIn(MIN_STEP, MAX_STEP),
+        warningLeadMinutes = warningLeadMinutes.coerceIn(MIN_STEP, MAX_STEP),
         status = session.status.name,
         accumulatedSeconds = session.accumulatedSeconds,
         runningSinceEpochMs = session.runningSinceEpochMs,
@@ -50,6 +52,8 @@ internal fun TciSessionSnapshot.toForm(): TciForm =
         sex = enumOr(sex, Sex.MALE),
         targetText = targetText,
         wakeThresholdText = wakeThresholdText,
+        tableStepMinutes = tableStepMinutes.coerceIn(MIN_STEP, MAX_STEP),
+        warningLeadMinutes = warningLeadMinutes.coerceIn(MIN_STEP, MAX_STEP),
     )
 
 internal fun TciSessionSnapshot.toSession(): TciSession =

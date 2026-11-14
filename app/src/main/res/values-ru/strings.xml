@@ -224,7 +224,13 @@
     <string name="tci_wake_countdown">Обратный отсчёт после паузы: инфузия остановлена</string>
     <string name="tci_pump_phase_paused">Пауза</string>
     <string name="tci_pump_paused">Пауза — скорость насоса 0 мл/ч, концентрации снижаются.</string>
+    <string name="tci_table_step_setting">Шаг таблицы скоростей</string>
+    <string name="tci_warning_lead_setting">Предупреждать до коррекции</string>
+    <string name="tci_minutes">мин</string>
+    <string name="tci_range_1_15">1–15 мин</string>
+    <string name="tci_pump_warning_soon">Следующая коррекция через %1$s — приготовьтесь</string>
 </resources>
+
 
 
 

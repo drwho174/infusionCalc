@@ -99,6 +99,12 @@ class TciLiveTest {
     }
 
     @Test
+    fun `warning appears within the configured lead time`() {
+        val live = buildLive(plan, form, TciSession().start(0), 300_000, null)!!
+        assertTrue(live.warningSoon)
+    }
+
+    @Test
     fun `rate advice is rounded to one decimal`() {
         val live = buildLive(plan, form, TciSession().start(0), 300_000, null)!!
         val rate = live.currentRateMlPerHour!!

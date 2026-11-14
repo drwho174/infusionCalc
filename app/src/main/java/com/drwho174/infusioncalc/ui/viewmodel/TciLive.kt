@@ -24,6 +24,8 @@ data class TciLive(
     val stepOffsetSeconds: Int?,
     val nextChangeInSeconds: Int?,
     val nextRateMlPerHour: BigDecimal?,
+    /** Следующая коррекция уже близко — пора готовиться. */
+    val warningSoon: Boolean,
     val confirmed: Boolean,
     val overdue: Boolean,
     val manual: Boolean,
@@ -40,6 +42,8 @@ data class TciLive(
 
 /** Порог, после которого неподтверждённая уставка считается просроченной. */
 internal const val OVERDUE_SECONDS = 60
+
+private const val SECONDS_PER_MINUTE = 60
 
 /**
  * Собирает живое состояние из плана, формы и сессии. Чистая функция:
@@ -125,6 +129,12 @@ internal fun buildLive(
             )
         }
 
+    val warningSoon =
+        !paused &&
+            !manualActive &&
+            advice.nextIn != null &&
+            advice.nextIn <= form.warningLeadMinutes.coerceIn(MIN_STEP, MAX_STEP) * SECONDS_PER_MINUTE
+
     return TciLive(
         elapsedSeconds = elapsed,
         chartSeconds = elapsed,
@@ -133,6 +143,7 @@ internal fun buildLive(
         stepOffsetSeconds = advice.offset,
         nextChangeInSeconds = advice.nextIn,
         nextRateMlPerHour = advice.nextRate?.let { TciEngine.formatRateMlPerHour(it) },
+        warningSoon = warningSoon,
         confirmed = advice.confirmed,
         overdue = advice.overdue,
         manual = manualActive,

@@ -19,6 +19,8 @@ data class TciSessionSnapshot(
     val sex: String,
     val targetText: String,
     val wakeThresholdText: String,
+    val tableStepMinutes: Int = 5,
+    val warningLeadMinutes: Int = 5,
     val status: String,
     val accumulatedSeconds: Int,
     val runningSinceEpochMs: Long?,

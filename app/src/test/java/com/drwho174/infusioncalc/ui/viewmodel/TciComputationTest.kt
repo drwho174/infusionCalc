@@ -93,6 +93,16 @@ class TciComputationTest {
     }
 
     @Test
+    fun `table step setting changes the schedule grid`() {
+        val five = buildTciState(marshForm("4")).computed!!.plan
+        val ten = buildTciState(marshForm("4").copy(tableStepMinutes = 10)).computed!!.plan
+
+        assertTrue(five.steps.any { it.offsetSeconds == 300 })
+        assertTrue(ten.steps.none { it.offsetSeconds == 300 })
+        assertTrue(ten.steps.any { it.offsetSeconds == 600 })
+    }
+
+    @Test
     fun `weight out of technical range blocks`() {
         assertEquals(TciBlocking.WEIGHT, buildTciState(marshForm("4", weight = "301")).blocking)
         assertEquals(TciBlocking.WEIGHT, buildTciState(marshForm("4", weight = "0")).blocking)

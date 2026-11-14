@@ -73,6 +73,8 @@ import com.drwho174.infusioncalc.tci.TargetMode
 import com.drwho174.infusioncalc.tci.TciModel
 import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.normalizeDecimalInput
+import com.drwho174.infusioncalc.ui.viewmodel.MAX_STEP
+import com.drwho174.infusioncalc.ui.viewmodel.MIN_STEP
 import com.drwho174.infusioncalc.ui.viewmodel.TciBlocking
 import com.drwho174.infusioncalc.ui.viewmodel.TciComputed
 import com.drwho174.infusioncalc.ui.viewmodel.TciForm
@@ -238,15 +240,10 @@ fun TciScreen(
             )
 
             Spacer(Modifier.height(12.dp))
-            PatientSection(form = form, viewModel = viewModel, enabled = !active)
+            PatientSection(form = form, viewModel = viewModel, enabled = !active, blocking = blocking)
 
             Spacer(Modifier.height(12.dp))
-            TargetSection(form = form, viewModel = viewModel, enabled = !active)
-
-            if (blocking != null) {
-                Spacer(Modifier.height(12.dp))
-                BlockingCard(blocking = blocking)
-            }
+            TargetSection(form = form, viewModel = viewModel, enabled = !active, blocking = blocking)
 
             if (warnings.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
@@ -321,15 +318,17 @@ fun TciScreen(
     }
 
     if (showSettings) {
-        BolusRateDialog(
-            current = form.bolusRateText,
+        TciSettingsDialog(
+            currentBolusRate = form.bolusRateText,
+            currentTableStep = form.tableStepMinutes,
+            currentWarningLead = form.warningLeadMinutes,
             onDismiss = { showSettings = false },
             onShowDisclaimer = {
                 viewModel.showDisclaimerAgain()
                 showSettings = false
             },
-            onSave = { value ->
-                viewModel.onBolusRateChange(value)
+            onSave = { bolus, step, lead ->
+                viewModel.applyTciSettings(bolus, step, lead)
                 showSettings = false
             },
         )
@@ -514,6 +513,14 @@ private fun PumpPanel(
                         style = MaterialTheme.typography.bodyMedium,
                     )
             }
+            if (live.warningSoon && live.nextChangeInSeconds != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.tci_pump_warning_soon, formatElapsed(live.nextChangeInSeconds)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
             if (live.overdue) {
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -611,33 +618,69 @@ private fun TciDisclaimerDialog(onDismiss: (neverShow: Boolean) -> Unit) {
     )
 }
 
+@Suppress("LongMethod", "LongParameterList")
 @Composable
-private fun BolusRateDialog(
-    current: String,
+private fun TciSettingsDialog(
+    currentBolusRate: String,
+    currentTableStep: Int,
+    currentWarningLead: Int,
     onDismiss: () -> Unit,
     onShowDisclaimer: () -> Unit,
-    onSave: (String) -> Unit,
+    onSave: (bolusRate: String, tableStep: Int, warningLead: Int) -> Unit,
 ) {
-    var text by remember { mutableStateOf(current) }
+    var bolus by remember { mutableStateOf(currentBolusRate) }
+    var step by remember { mutableStateOf(currentTableStep.toString()) }
+    var lead by remember { mutableStateOf(currentWarningLead.toString()) }
+    val stepValue = step.toIntOrNull()
+    val leadValue = lead.toIntOrNull()
+    val bolusValid = bolus.toBigDecimalOrNull()?.let { it.signum() > 0 } == true
+    val stepValid = stepValue != null && stepValue in MIN_STEP..MAX_STEP
+    val leadValid = leadValue != null && leadValue in MIN_STEP..MAX_STEP
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tci_settings_title)) },
         text = {
             Column {
                 OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = normalizeDecimalInput(it) },
+                    value = bolus,
+                    onValueChange = { bolus = normalizeDecimalInput(it) },
                     label = { Text(stringResource(R.string.tci_bolus_rate_setting)) },
                     suffix = { Text(stringResource(R.string.tci_ml_h)) },
                     singleLine = true,
+                    isError = !bolusValid,
+                    supportingText =
+                        if (bolusValid) {
+                            { Text(stringResource(R.string.tci_bolus_rate_hint)) }
+                        } else {
+                            { Text(stringResource(R.string.tci_blocking_bolus_rate)) }
+                        },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(R.string.tci_bolus_rate_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = step,
+                    onValueChange = { step = it.filter(Char::isDigit) },
+                    label = { Text(stringResource(R.string.tci_table_step_setting)) },
+                    suffix = { Text(stringResource(R.string.tci_minutes)) },
+                    singleLine = true,
+                    isError = !stepValid,
+                    supportingText = { Text(stringResource(R.string.tci_range_1_15)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = lead,
+                    onValueChange = { lead = it.filter(Char::isDigit) },
+                    label = { Text(stringResource(R.string.tci_warning_lead_setting)) },
+                    suffix = { Text(stringResource(R.string.tci_minutes)) },
+                    singleLine = true,
+                    isError = !leadValid,
+                    supportingText = { Text(stringResource(R.string.tci_range_1_15)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 TextButton(onClick = onShowDisclaimer) {
                     Text(stringResource(R.string.tci_disclaimer_show))
@@ -646,8 +689,8 @@ private fun BolusRateDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(text) },
-                enabled = text.toBigDecimalOrNull()?.signum() == 1,
+                onClick = { onSave(bolus, stepValue!!, leadValue!!) },
+                enabled = bolusValid && stepValid && leadValid,
             ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
@@ -704,11 +747,13 @@ private fun ModelModeSection(
 
 // ---------------------------------------------------------------------- пациент
 
+@Suppress("LongMethod")
 @Composable
 private fun PatientSection(
     form: TciForm,
     viewModel: TciViewModel,
     enabled: Boolean,
+    blocking: TciBlocking?,
 ) {
     TciSectionCard(title = stringResource(R.string.tci_section_patient)) {
         OutlinedTextField(
@@ -718,6 +763,13 @@ private fun PatientSection(
             suffix = { Text(stringResource(R.string.tci_kg)) },
             singleLine = true,
             enabled = enabled,
+            isError = blocking == TciBlocking.WEIGHT,
+            supportingText =
+                if (blocking == TciBlocking.WEIGHT) {
+                    { Text(stringResource(R.string.tci_blocking_weight)) }
+                } else {
+                    null
+                },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -730,6 +782,13 @@ private fun PatientSection(
                 suffix = { Text(stringResource(R.string.tci_cm)) },
                 singleLine = true,
                 enabled = enabled,
+                isError = blocking == TciBlocking.HEIGHT,
+                supportingText =
+                    if (blocking == TciBlocking.HEIGHT) {
+                        { Text(stringResource(R.string.tci_blocking_height)) }
+                    } else {
+                        null
+                    },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -741,6 +800,13 @@ private fun PatientSection(
                 suffix = { Text(stringResource(R.string.tci_years)) },
                 singleLine = true,
                 enabled = enabled,
+                isError = blocking == TciBlocking.AGE,
+                supportingText =
+                    if (blocking == TciBlocking.AGE) {
+                        { Text(stringResource(R.string.tci_blocking_age)) }
+                    } else {
+                        null
+                    },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -772,6 +838,7 @@ private fun TargetSection(
     form: TciForm,
     viewModel: TciViewModel,
     enabled: Boolean,
+    blocking: TciBlocking?,
 ) {
     TciSectionCard(title = stringResource(R.string.tci_section_target)) {
         Text(stringResource(R.string.tci_concentration), style = MaterialTheme.typography.labelLarge)
@@ -802,10 +869,17 @@ private fun TargetSection(
                 )
             },
             suffix = { Text(stringResource(R.string.tci_mcg_ml)) },
+            isError = blocking == TciBlocking.TARGET,
             supportingText = {
                 Text(
                     stringResource(
-                        if (form.mode == TargetMode.PLASMA) R.string.tci_range_hint_cp else R.string.tci_range_hint_ce,
+                        if (blocking == TciBlocking.TARGET) {
+                            R.string.tci_blocking_target
+                        } else if (form.mode == TargetMode.PLASMA) {
+                            R.string.tci_range_hint_cp
+                        } else {
+                            R.string.tci_range_hint_ce
+                        },
                     ),
                 )
             },
@@ -818,34 +892,6 @@ private fun TargetSection(
             stringResource(R.string.tci_target_change_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-// ---------------------------------------------------------------------- блокирующее сообщение
-
-@Composable
-private fun BlockingCard(blocking: TciBlocking) {
-    val text =
-        when (blocking) {
-            TciBlocking.WEIGHT -> stringResource(R.string.tci_blocking_weight)
-            TciBlocking.HEIGHT -> stringResource(R.string.tci_blocking_height)
-            TciBlocking.AGE -> stringResource(R.string.tci_blocking_age)
-            TciBlocking.TARGET -> stringResource(R.string.tci_blocking_target)
-            TciBlocking.BOLUS_RATE -> stringResource(R.string.tci_blocking_bolus_rate)
-        }
-    Card(
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-            ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(12.dp),
         )
     }
 }

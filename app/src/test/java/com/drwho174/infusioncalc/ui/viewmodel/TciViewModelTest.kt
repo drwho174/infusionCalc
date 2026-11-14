@@ -38,6 +38,8 @@ class TciViewModelTest {
         var cleared = false
         var disclaimerHidden = false
         var bolusRate: BigDecimal? = null
+        var tableStep: Int? = null
+        var warningLead: Int? = null
 
         override suspend fun load(): TciSessionSnapshot? = saved
 
@@ -61,6 +63,18 @@ class TciViewModelTest {
         override suspend fun saveBolusRateMlPerHour(value: BigDecimal) {
             bolusRate = value
         }
+
+        override suspend fun loadTableStepMinutes(): Int? = tableStep
+
+        override suspend fun saveTableStepMinutes(value: Int) {
+            tableStep = value
+        }
+
+        override suspend fun loadWarningLeadMinutes(): Int? = warningLead
+
+        override suspend fun saveWarningLeadMinutes(value: Int) {
+            warningLead = value
+        }
     }
 
     private fun ready(
@@ -71,6 +85,21 @@ class TciViewModelTest {
             onWeightChange("70")
             onTargetChange("4")
         }
+
+    @Test
+    fun `settings update bolus rate, table step and warning lead`() {
+        val store = FakeStore()
+        val viewModel = ready(store, clock = { 0L })
+
+        viewModel.applyTciSettings("600", 10, 3)
+
+        assertEquals(0, BigDecimal("600").compareTo(store.bolusRate))
+        assertEquals(10, store.tableStep)
+        assertEquals(3, store.warningLead)
+        assertEquals(10, viewModel.state.value.form.tableStepMinutes)
+        assertEquals(3, viewModel.state.value.form.warningLeadMinutes)
+        assertEquals("600", viewModel.state.value.form.bolusRateText)
+    }
 
     @Test
     fun `weight is prefilled from the shared weight store`() {

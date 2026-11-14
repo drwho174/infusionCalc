@@ -224,7 +224,13 @@
     <string name="tci_wake_countdown">Countdown after pause: the infusion is stopped</string>
     <string name="tci_pump_phase_paused">Paused</string>
     <string name="tci_pump_paused">Paused — pump rate 0 mL/h; concentrations are decaying.</string>
+    <string name="tci_table_step_setting">Rate table step</string>
+    <string name="tci_warning_lead_setting">Warn before the next change</string>
+    <string name="tci_minutes">min</string>
+    <string name="tci_range_1_15">1–15 min</string>
+    <string name="tci_pump_warning_soon">Next change in %1$s — get ready</string>
 </resources>
+
 
 
 

@@ -216,6 +216,42 @@ class TciViewModel(
         }
     }
 
+    /**
+     * Настройки TCI из appbar: скорость болюса, шаг таблицы скоростей и запас времени
+     * для предупреждения о следующей коррекции (1–15 минут).
+     */
+    fun applyTciSettings(
+        bolusRateRaw: String,
+        tableStepMinutes: Int,
+        warningLeadMinutes: Int,
+    ) {
+        val base = _state.value
+        val bolusText = normalizeDecimalInput(bolusRateRaw)
+        val form =
+            base.form.copy(
+                bolusRateText = bolusText,
+                tableStepMinutes = tableStepMinutes.coerceIn(MIN_STEP, MAX_STEP),
+                warningLeadMinutes = warningLeadMinutes.coerceIn(MIN_STEP, MAX_STEP),
+            )
+        val live = base.live
+        when {
+            session.status == TciSessionStatus.PAUSED -> _state.value = base.copy(form = form)
+            session.isActive && live?.state != null ->
+                applyReplan(live.state, live.chartSeconds, form.targetText, form)
+            else ->
+                _state.value =
+                    buildTciState(form).copy(
+                        disclaimerHidden = base.disclaimerHidden,
+                        preferencesLoaded = base.preferencesLoaded,
+                    )
+        }
+        viewModelScope.launch {
+            bolusText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }?.let { store.saveBolusRateMlPerHour(it) }
+            store.saveTableStepMinutes(form.tableStepMinutes)
+            store.saveWarningLeadMinutes(form.warningLeadMinutes)
+        }
+    }
+
     /** «Больше не показывать» для дисклеймера. */
     fun hideDisclaimerForever() {
         _state.value = _state.value.copy(disclaimerHidden = true)
@@ -287,6 +323,14 @@ class TciViewModel(
         val snapshot = runCatching { store.load() }.getOrNull()
         val hidden = runCatching { store.isDisclaimerHidden() }.getOrDefault(false)
         val storedBolusRate = runCatching { store.loadBolusRateMlPerHour() }.getOrNull()
+        val storedStep =
+            runCatching { store.loadTableStepMinutes() }
+                .getOrNull()
+                ?.coerceIn(MIN_STEP, MAX_STEP) ?: DEFAULT_TABLE_STEP_MINUTES
+        val storedLead =
+            runCatching { store.loadWarningLeadMinutes() }
+                .getOrNull()
+                ?.coerceIn(MIN_STEP, MAX_STEP) ?: DEFAULT_WARNING_LEAD_MINUTES
         restoring = false
 
         if (snapshot == null) {
@@ -297,6 +341,8 @@ class TciViewModel(
                         weightStore.weight.value
                             ?.toPlainString()
                             .orEmpty(),
+                    tableStepMinutes = storedStep,
+                    warningLeadMinutes = storedLead,
                 )
             val base = buildTciState(form)
             activePlan = base.computed?.plan
@@ -306,17 +352,20 @@ class TciViewModel(
         }
 
         val restoredForm = snapshot.toForm()
+        val prefillWeight = restoredForm.weightText.isBlank()
         val form =
-            if (restoredForm.weightText.isBlank()) {
-                restoredForm.copy(
-                    weightText =
+            restoredForm.copy(
+                weightText =
+                    if (prefillWeight) {
                         weightStore.weight.value
                             ?.toPlainString()
-                            .orEmpty(),
-                )
-            } else {
-                restoredForm
-            }
+                            .orEmpty()
+                    } else {
+                        restoredForm.weightText
+                    },
+                tableStepMinutes = storedStep,
+                warningLeadMinutes = storedLead,
+            )
         val base = buildTciState(form)
         val computed = base.computed
         if (computed == null) {
@@ -372,9 +421,10 @@ class TciViewModel(
         state: TciState,
         elapsedSeconds: Int,
         targetText: String,
+        formOverride: TciForm? = null,
     ) {
         val live = _state.value.live
-        val form = _state.value.form.copy(targetText = targetText)
+        val form = (formOverride ?: _state.value.form).copy(targetText = targetText)
         val base = buildTciState(form)
         val computed = base.computed ?: return
         val plan = replanFromState(form, state, elapsedSeconds) ?: return
@@ -405,7 +455,13 @@ class TciViewModel(
         val params = parametersOf(form) ?: return null
         val request = requestOf(form) ?: return null
         return runCatching {
-            TciEngine.pumpPlanFromState(request, params, state, startSeconds)
+            TciEngine.pumpPlanFromState(
+                request = request,
+                params = params,
+                state = state,
+                startSeconds = startSeconds,
+                stepSeconds = form.tableStepMinutes.coerceIn(MIN_STEP, MAX_STEP) * 60,
+            )
         }.getOrNull()
     }
 
