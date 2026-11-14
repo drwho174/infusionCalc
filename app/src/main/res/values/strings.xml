@@ -113,7 +113,7 @@
     <string name="settings_offline">The app works offline, data is not transmitted</string>
 
     <!-- tci card -->
-    <string name="tci_title">Propofol (TCI)</string>
+    <string name="tci_title">Propofol</string>
     <string name="tci_badge">TCI</string>
     <string name="tci_disclaimer">This TCI card predicts propofol concentration using a population pharmacokinetic model (Marsh/Schnider) from the data you enter. The prediction is not a measured concentration and does not replace clinical judgement of anaesthetic depth or monitoring. Propofol TCI must only be performed by experienced anaesthetists, for induction and maintenance of anaesthesia in adults only; not for sedation and not in children. Rates and stage timings are entered into the pump manually; always verify the model, patient, concentration and target against the order and the product label. Administration remains the responsibility of the healthcare professional.</string>
     <string name="tci_info_prediction">Cp/Ce is a population-model prediction, not a measured concentration.</string>
@@ -232,7 +232,9 @@
     <string name="tci_models_title">TCI models</string>
     <string name="tci_models_action">Model reference</string>
     <string name="edit">Edit</string>
+    <string name="add_short">Add</string>
 </resources>
+
 
 
 

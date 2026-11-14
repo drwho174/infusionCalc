@@ -228,16 +228,9 @@ private fun CalculatorContent(
                         .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                drug.presets.forEach { item ->
-                    FilterChip(
-                        selected = preset?.id == item.id,
-                        onClick = { viewModel.onPresetSelected(item) },
-                        label = { Text(item.displayLabel()) },
-                    )
-                }
                 AssistChip(
                     onClick = { presetDialogOpen = true },
-                    label = { Text(stringResource(R.string.add_concentration)) },
+                    label = { Text(stringResource(R.string.add_short)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Filled.Add,
@@ -245,6 +238,13 @@ private fun CalculatorContent(
                         )
                     },
                 )
+                drug.presets.forEach { item ->
+                    FilterChip(
+                        selected = preset?.id == item.id,
+                        onClick = { viewModel.onPresetSelected(item) },
+                        label = { Text(item.displayLabel()) },
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))

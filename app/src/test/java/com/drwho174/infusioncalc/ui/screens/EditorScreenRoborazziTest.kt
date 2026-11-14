@@ -54,6 +54,29 @@ class EditorScreenRoborazziTest {
         composeRule.onRoot().captureRoboImage("src/test/screenshots/editor_screen.png")
     }
 
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h740dp-xhdpi")
+    fun editorConcentrationListFitsTheRowInRussian() {
+        val drug = drug()
+        val viewModel = EditorViewModel(drug.id, FakeDrugRepository(listOf(drug)))
+
+        composeRule.setContent {
+            InfusionCalcTheme {
+                EditorScreen(
+                    viewModel = viewModel,
+                    onBack = {},
+                    onSaved = {},
+                    onCalculate = {},
+                )
+            }
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Концентрации").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/editor_screen_ru.png")
+    }
+
     private fun drug() =
         Drug(
             id = "dopamine",
