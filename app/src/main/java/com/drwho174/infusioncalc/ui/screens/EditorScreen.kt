@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,23 +39,29 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
+import com.drwho174.infusioncalc.domain.model.ConcentrationMode
+import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.ui.amountUnitLabel
-import com.drwho174.infusioncalc.ui.display
+import com.drwho174.infusioncalc.ui.components.ConcentrationPresetDialog
+import com.drwho174.infusioncalc.ui.displayLabel
 import com.drwho174.infusioncalc.ui.viewmodel.EditorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun EditorScreen(
     viewModel: EditorViewModel,
     onBack: () -> Unit,
     onSaved: (String) -> Unit,
+    onCalculate: (String) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var unitMenu by remember { mutableStateOf(false) }
     var timeMenu by remember { mutableStateOf(false) }
-    var massUnitMenu by remember { mutableStateOf(false) }
+    var dialogOpen by remember { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<ConcentrationPreset?>(null) }
 
     Scaffold(
         topBar = {
@@ -175,55 +182,54 @@ fun EditorScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.concentration_preset), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.mass,
-                    onValueChange = viewModel::onMassChange,
-                    label = { Text(stringResource(R.string.mass)) },
-                    suffix = { Text(amountUnitLabel(state.massUnit)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = state.volume,
-                    onValueChange = viewModel::onVolumeChange,
-                    label = { Text(stringResource(R.string.volume)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f),
+            Text(stringResource(R.string.section_concentrations), style = MaterialTheme.typography.labelLarge)
+            if (state.presets.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.no_presets),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(
-                onClick = { massUnitMenu = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.mass_unit) + ": " + amountUnitLabel(state.massUnit))
-            }
-            DropdownMenu(expanded = massUnitMenu, onDismissRequest = { massUnitMenu = false }) {
-                AmountUnit.entries.forEach { candidate ->
-                    DropdownMenuItem(
-                        text = { Text(amountUnitLabel(candidate)) },
-                        onClick = {
-                            viewModel.onMassUnitChange(candidate)
-                            massUnitMenu = false
-                        },
+            state.presets.forEach { preset ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = preset.displayLabel(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
                     )
+                    if (preset.mode == ConcentrationMode.MASS_VOLUME) {
+                        TextButton(
+                            onClick = {
+                                editTarget = preset
+                                dialogOpen = true
+                            },
+                        ) {
+                            Text(stringResource(R.string.edit_concentration))
+                        }
+                    }
+                    if (state.presets.size > 1) {
+                        TextButton(onClick = { viewModel.deletePreset(preset.id) }) {
+                            Text(stringResource(R.string.delete))
+                        }
+                    }
                 }
             }
-            Text(
-                text =
-                    if (state.concentration != null) {
-                        stringResource(
-                            R.string.concentration_preview,
-                            state.concentration.display(),
-                            amountUnitLabel(state.massUnit),
-                        )
-                    } else {
-                        stringResource(R.string.concentration_empty)
-                    },
-                style = MaterialTheme.typography.bodySmall,
+            TextButton(
+                onClick = {
+                    editTarget = null
+                    dialogOpen = true
+                },
+            ) {
+                Text(stringResource(R.string.add_concentration))
+            }
+
+            Spacer(Modifier.height(16.dp))
+            OutlinedTextField(
+                value = state.notes,
+                onValueChange = viewModel::onNotesChange,
+                label = { Text(stringResource(R.string.section_notes)) },
+                minLines = 2,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(24.dp))
@@ -234,6 +240,32 @@ fun EditorScreen(
             ) {
                 Text(stringResource(R.string.save))
             }
+            if (state.isEditing) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { viewModel.save(onCalculate) },
+                    enabled = state.valid,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.to_calc))
+                }
+            }
         }
+    }
+
+    if (dialogOpen) {
+        val current = editTarget
+        ConcentrationPresetDialog(
+            initial = current,
+            onDismiss = { dialogOpen = false },
+            onSave = { amount, unit, volume ->
+                if (current == null) {
+                    viewModel.addPreset(amount, unit, volume)
+                } else {
+                    viewModel.updatePreset(current.id, amount, unit, volume)
+                }
+                dialogOpen = false
+            },
+        )
     }
 }

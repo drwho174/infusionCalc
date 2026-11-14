@@ -17,8 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Folder
+import com.drwho174.infusioncalc.ui.components.ConcentrationPresetDialog
 import com.drwho174.infusioncalc.ui.components.FolderNameField
 import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.displayLabel
@@ -59,7 +60,6 @@ import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
     onBack: () -> Unit,
-    onOpenCard: () -> Unit,
     onEditDrug: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,24 +73,24 @@ fun CalculatorScreen(
         state = state,
         viewModel = viewModel,
         onBack = onBack,
-        onOpenCard = onOpenCard,
         onEditDrug = onEditDrug,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun CalculatorContent(
     state: CalculatorUiState,
     viewModel: CalculatorViewModel,
     onBack: () -> Unit,
-    onOpenCard: () -> Unit,
     onEditDrug: () -> Unit,
 ) {
     val drug = state.drug ?: return
     var showFolders by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showBuiltInDeleteError by remember { mutableStateOf(false) }
+    var presetDialogOpen by remember { mutableStateOf(false) }
     val scheme = state.scheme
     val preset = state.preset
     val unitLabel = scheme?.let { schemeLabel(it.amountUnit, it.perKg, it.perTime) } ?: ""
@@ -126,12 +126,6 @@ private fun CalculatorContent(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = stringResource(R.string.folders),
-                        )
-                    }
-                    IconButton(onClick = onOpenCard) {
-                        Icon(
-                            imageVector = Icons.Filled.Info,
-                            contentDescription = stringResource(R.string.card),
                         )
                     }
                     IconButton(
@@ -226,22 +220,31 @@ private fun CalculatorContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    drug.presets.forEach { item ->
-                        FilterChip(
-                            selected = preset?.id == item.id,
-                            onClick = { viewModel.onPresetSelected(item) },
-                            label = { Text(item.displayLabel()) },
-                        )
-                    }
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                drug.presets.forEach { item ->
+                    FilterChip(
+                        selected = preset?.id == item.id,
+                        onClick = { viewModel.onPresetSelected(item) },
+                        label = { Text(item.displayLabel()) },
+                    )
                 }
+                AssistChip(
+                    onClick = { presetDialogOpen = true },
+                    label = { Text(stringResource(R.string.add_concentration)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = null,
+                        )
+                    },
+                )
             }
 
             Spacer(Modifier.height(16.dp))
@@ -347,6 +350,17 @@ private fun CalculatorContent(
                 TextButton(onClick = { showBuiltInDeleteError = false }) {
                     Text(stringResource(R.string.ok))
                 }
+            },
+        )
+    }
+
+    if (presetDialogOpen) {
+        ConcentrationPresetDialog(
+            initial = null,
+            onDismiss = { presetDialogOpen = false },
+            onSave = { amount, unit, volume ->
+                viewModel.addPreset(amount, unit, volume)
+                presetDialogOpen = false
             },
         )
     }

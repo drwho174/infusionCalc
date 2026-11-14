@@ -13,7 +13,6 @@ internal val navSerializersModule =
             subclass(WeightKey::class)
             subclass(CatalogKey::class)
             subclass(CalculatorKey::class)
-            subclass(DrugCardKey::class)
             subclass(EditorKey::class)
             subclass(SettingsKey::class)
             subclass(TciKey::class)

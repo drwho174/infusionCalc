@@ -18,11 +18,11 @@ class NavigationKeysTest {
                 WeightKey,
                 CatalogKey,
                 CalculatorKey("norepinephrine"),
-                DrugCardKey("norepinephrine"),
                 EditorKey(null),
                 EditorKey("norepinephrine"),
                 SettingsKey,
                 TciKey,
+                TciModelsKey,
             )
 
         keys.forEach { key ->

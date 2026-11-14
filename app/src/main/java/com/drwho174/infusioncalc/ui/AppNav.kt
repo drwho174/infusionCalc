@@ -18,7 +18,6 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import com.drwho174.infusioncalc.ui.navigation.CalculatorKey
 import com.drwho174.infusioncalc.ui.navigation.CatalogKey
 import com.drwho174.infusioncalc.ui.navigation.DisclaimerKey
-import com.drwho174.infusioncalc.ui.navigation.DrugCardKey
 import com.drwho174.infusioncalc.ui.navigation.EditorKey
 import com.drwho174.infusioncalc.ui.navigation.SettingsKey
 import com.drwho174.infusioncalc.ui.navigation.TciKey
@@ -28,7 +27,6 @@ import com.drwho174.infusioncalc.ui.navigation.navSerializersModule
 import com.drwho174.infusioncalc.ui.screens.CalculatorScreen
 import com.drwho174.infusioncalc.ui.screens.CatalogScreen
 import com.drwho174.infusioncalc.ui.screens.DisclaimerScreen
-import com.drwho174.infusioncalc.ui.screens.DrugCardScreen
 import com.drwho174.infusioncalc.ui.screens.EditorScreen
 import com.drwho174.infusioncalc.ui.screens.SettingsScreen
 import com.drwho174.infusioncalc.ui.screens.TciModelsScreen
@@ -99,15 +97,7 @@ fun AppNav(
                     CalculatorScreen(
                         viewModel = koinViewModel(key = key.drugId) { parametersOf(key.drugId) },
                         onBack = { backStack.removeLastOrNull() },
-                        onOpenCard = { backStack.add(DrugCardKey(key.drugId)) },
                         onEditDrug = { backStack.add(EditorKey(key.drugId)) },
-                    )
-                }
-                entry<DrugCardKey> { key ->
-                    DrugCardScreen(
-                        viewModel = koinViewModel(key = key.drugId) { parametersOf(key.drugId) },
-                        onBack = { backStack.removeLastOrNull() },
-                        onCalculate = { backStack.add(CalculatorKey(key.drugId)) },
                     )
                 }
                 entry<EditorKey> { key ->
@@ -117,6 +107,13 @@ fun AppNav(
                                 parametersOf(key.drugId ?: "")
                             },
                         onBack = { backStack.removeLastOrNull() },
+                        onCalculate = { savedId ->
+                            backStack.removeLastOrNull() // закрыть редактор
+                            val top = backStack.lastOrNull()
+                            if (top !is CalculatorKey || top.drugId != savedId) {
+                                backStack.add(CalculatorKey(savedId))
+                            }
+                        },
                         onSaved = { savedId ->
                             backStack.removeLastOrNull() // закрыть редактор
                             val editedId = key.drugId

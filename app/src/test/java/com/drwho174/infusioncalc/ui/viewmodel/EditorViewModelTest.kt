@@ -87,8 +87,7 @@ class EditorViewModelTest {
             advanceUntilIdle()
 
             viewModel.onNameChange("Тестовый")
-            viewModel.onMassChange("10")
-            viewModel.onVolumeChange("100")
+            viewModel.addPreset(BigDecimal("10"), AmountUnit.MG, BigDecimal("100"))
             advanceUntilIdle()
 
             var savedId: String? = null
@@ -100,6 +99,54 @@ class EditorViewModelTest {
         }
 
     @Test
+    fun `new concentration chip is added selected and saved`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository()
+            val viewModel = EditorViewModel(null, repository)
+            advanceUntilIdle()
+
+            viewModel.onNameChange("Тестовый")
+            viewModel.onNotesChange("Болюс медленно")
+            assertFalse(viewModel.state.value.valid)
+
+            viewModel.addPreset(BigDecimal("2"), AmountUnit.MG, BigDecimal("50"))
+            advanceUntilIdle()
+
+            assertTrue(viewModel.state.value.valid)
+            val preset =
+                viewModel.state.value.presets
+                    .single()
+            assertEquals(preset.id, viewModel.state.value.selectedPresetId)
+
+            var savedId: String? = null
+            viewModel.save { savedId = it }
+            advanceUntilIdle()
+
+            val saved = repository.getDrug(savedId!!)!!
+            assertEquals(1, saved.presets.size)
+            assertTrue(saved.presets.single().isDefault)
+            assertEquals(BigDecimal("2"), saved.presets.single().amount)
+            assertEquals("Болюс медленно", saved.notes)
+        }
+
+    @Test
+    fun `last concentration cannot be deleted`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository()
+            val viewModel = EditorViewModel(null, repository)
+            advanceUntilIdle()
+
+            viewModel.addPreset(BigDecimal("2"), AmountUnit.MG, BigDecimal("50"))
+            val id =
+                viewModel.state.value.presets
+                    .single()
+                    .id
+            viewModel.deletePreset(id)
+
+            assertEquals(1, viewModel.state.value.presets.size)
+        }
+
+    @Test
     fun `new drug with an existing name is rejected`() =
         runTest(dispatcher) {
             val repository = FakeDrugRepository(listOf(builtIn()))
@@ -107,8 +154,7 @@ class EditorViewModelTest {
             advanceUntilIdle()
 
             viewModel.onNameChange("Норадреналин")
-            viewModel.onMassChange("4")
-            viewModel.onVolumeChange("1000")
+            viewModel.addPreset(BigDecimal("4"), AmountUnit.MG, BigDecimal("1000"))
             advanceUntilIdle()
 
             assertTrue(viewModel.state.value.duplicateName)

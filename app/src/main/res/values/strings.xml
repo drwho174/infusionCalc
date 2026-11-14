@@ -60,7 +60,6 @@
     <string name="warning_above_title">Dose is above the listed range</string>
     <string name="warning_check">Check units, weight and concentration</string>
     <string name="concentration">Concentration</string>
-    <string name="no_concentration">No concentration</string>
     <string name="dose">Dose</string>
     <string name="rate">Infusion rate</string>
     <string name="rate_unit">mL/h</string>
@@ -73,7 +72,6 @@
     <string name="weight_required">Set the weight at launch — per-kg calculation is impossible without it</string>
     <string name="disclaimer_short">This calculator does not replace a physician\'s order</string>
     <string name="edit_drug">Edit drug</string>
-    <string name="card">Details</string>
     <string name="no_presets">No presets</string>
     <string name="delete_drug_title">Delete drug?</string>
     <string name="delete_drug_body">The drug and its concentrations will be deleted. This cannot be undone.</string>
@@ -82,14 +80,10 @@
     <string name="ok">OK</string>
 
     <!-- drug card -->
-    <string name="card_title_catalog">Catalog</string>
-    <string name="card_title_mine">My drug</string>
-    <string name="section_dosing">Dosing</string>
     <string name="section_concentrations">Concentrations</string>
     <string name="add_concentration">Add concentration</string>
     <string name="edit_concentration">Edit concentration</string>
     <string name="delete">Delete</string>
-    <string name="edit">Edit</string>
     <string name="section_notes">Notes</string>
     <string name="to_calc">Go to calculation</string>
 
@@ -104,12 +98,8 @@
     <string name="per_hour">per hour</string>
     <string name="range_from">Range from</string>
     <string name="range_to">to</string>
-    <string name="concentration_preset">Concentration (preset)</string>
     <string name="mass">Mass</string>
-    <string name="mass_unit">Unit of amount</string>
     <string name="volume">Volume, mL</string>
-    <string name="concentration_preview">= %1$s %2$s/mL</string>
-    <string name="concentration_empty">Enter mass and volume</string>
     <string name="duplicate_name">A drug with this name already exists</string>
 
     <!-- settings -->
@@ -242,6 +232,8 @@
     <string name="tci_models_title">TCI models</string>
     <string name="tci_models_action">Model reference</string>
 </resources>
+
+
 
 
 

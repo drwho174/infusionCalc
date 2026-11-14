@@ -3,12 +3,14 @@ package com.drwho174.infusioncalc.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drwho174.infusioncalc.domain.WeightStore
+import com.drwho174.infusioncalc.domain.model.ConcentrationMode
 import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.domain.model.DoseScheme
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
 import com.drwho174.infusioncalc.domain.repository.FolderRepository
+import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.util.UUID
 
 enum class InputSource { DOSE, RATE }
 
@@ -70,6 +73,45 @@ class CalculatorViewModel(
 
     fun onPresetSelected(preset: ConcentrationPreset) {
         form.update { it.copy(presetId = preset.id) }
+    }
+
+    /** Новая концентрация из блока выбора на экране расчёта. */
+    fun addPreset(
+        amount: BigDecimal,
+        amountUnit: AmountUnit,
+        volumeMl: BigDecimal,
+    ) {
+        val drug = state.value.drug ?: return
+        val existing =
+            drug.presets.firstOrNull {
+                it.mode == ConcentrationMode.MASS_VOLUME &&
+                    it.amount?.compareTo(amount) == 0 &&
+                    it.amountUnit == amountUnit &&
+                    it.volumeMl?.compareTo(volumeMl) == 0
+            }
+        if (existing != null) {
+            form.update { it.copy(presetId = existing.id) }
+            return
+        }
+        val preset =
+            ConcentrationPreset(
+                id = UUID.randomUUID().toString(),
+                drugId = drug.id,
+                mode = ConcentrationMode.MASS_VOLUME,
+                amount = amount,
+                amountUnit = amountUnit,
+                volumeMl = volumeMl,
+            )
+        viewModelScope.launch {
+            repository.save(
+                drug.copy(
+                    presets = drug.presets + preset,
+                    revision = drug.revision + 1,
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+            form.update { it.copy(presetId = preset.id) }
+        }
     }
 
     fun onFoldersChanged(folderIds: Set<String>) {

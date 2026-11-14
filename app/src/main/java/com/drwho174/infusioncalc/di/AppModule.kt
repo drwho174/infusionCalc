@@ -19,7 +19,6 @@ import com.drwho174.infusioncalc.notif.TciNotifier
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
-import com.drwho174.infusioncalc.ui.viewmodel.DrugCardViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.EditorViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.WeightViewModel
@@ -51,7 +50,6 @@ val appModule =
         viewModel { WeightViewModel(get()) }
         viewModel { CatalogViewModel(get(), get()) }
         viewModel { (drugId: String) -> CalculatorViewModel(drugId, get(), get(), get()) }
-        viewModel { (drugId: String) -> DrugCardViewModel(drugId, get()) }
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
