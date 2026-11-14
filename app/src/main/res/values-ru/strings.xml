@@ -237,7 +237,10 @@
     <string name="tci_notif_due">Пора выставить %1$s мл/ч</string>
     <string name="tci_notif_paused">Пауза — скорость 0 мл/ч</string>
     <string name="tci_notif_steady">Установившаяся скорость %1$s мл/ч</string>
+    <string name="tci_notif_action_pause">Пауза</string>
+    <string name="tci_notif_action_confirm">Выставил(а)</string>
 </resources>
+
 
 
 

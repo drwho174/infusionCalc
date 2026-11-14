@@ -36,6 +36,7 @@ private const val SDK_SPECIAL_USE = 34
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_HOUR = 3600
 
+@Suppress("TooManyFunctions")
 class TciSessionService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var ticker: Job? = null
@@ -90,6 +91,7 @@ class TciSessionService : Service() {
         }
     }
 
+    @Suppress("LongMethod")
     private fun build(
         model: TciNotificationModel,
         content: TciNotificationContent,
@@ -129,21 +131,48 @@ class TciSessionService : Service() {
                 openApp,
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-        return NotificationCompat
-            .Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_tci_notification)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setOngoing(true)
-            .setOnlyAlertOnce(!alert)
-            .setSilent(!alert)
-            .setContentIntent(pending)
-            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
+        val builder =
+            NotificationCompat
+                .Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_tci_notification)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setOngoing(true)
+                .setOnlyAlertOnce(!alert)
+                .setSilent(!alert)
+                .setContentIntent(pending)
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (!content.paused) {
+            builder.addAction(
+                R.drawable.ic_tci_notification,
+                getString(R.string.tci_notif_action_pause),
+                actionPending(TciNotificationActions.ACTION_PAUSE, 1),
+            )
+            if (content.dueOffsetSeconds != null) {
+                builder.addAction(
+                    R.drawable.ic_tci_notification,
+                    getString(R.string.tci_notif_action_confirm),
+                    actionPending(TciNotificationActions.ACTION_CONFIRM, 2),
+                )
+            }
+        }
+        return builder.build()
     }
+
+    private fun actionPending(
+        action: String,
+        requestCode: Int,
+    ): PendingIntent =
+        PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            Intent(this, TciActionReceiver::class.java).setAction(action),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private fun startForegroundCompat(notification: Notification) {
         if (Build.VERSION.SDK_INT >= SDK_SPECIAL_USE) {

@@ -38,6 +38,9 @@ class TciNotificationTest {
         session = session,
         plan = plan,
         curve = plan.predicted,
+        form =
+            com.drwho174.infusioncalc.ui.viewmodel
+                .TciForm(weightText = "70", targetText = "4"),
         pauseCurve = pauseCurve,
     )
 

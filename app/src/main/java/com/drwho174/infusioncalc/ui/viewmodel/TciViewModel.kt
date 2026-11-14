@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.drwho174.infusioncalc.data.session.TciSessionStore
 import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.notif.NoopTciNotifier
+import com.drwho174.infusioncalc.notif.TciNotificationBus
 import com.drwho174.infusioncalc.notif.TciNotificationModel
 import com.drwho174.infusioncalc.notif.TciNotifier
 import com.drwho174.infusioncalc.tci.PumpPlan
@@ -63,6 +64,7 @@ class TciViewModel(
     private var planStartSeconds = 0
     private var planStartState: TciState? = null
     private var lastSavedBucket = -1
+    private var seenNotificationRevision = 0
     private var restoring = true
 
     init {
@@ -72,6 +74,11 @@ class TciViewModel(
     /** Перерисовка по часам; фон не останавливает сессию. */
     fun refresh() {
         if (restoring || !session.isActive) return
+        if (TciNotificationBus.revision != seenNotificationRevision) {
+            seenNotificationRevision = TciNotificationBus.revision
+            viewModelScope.launch { restore() }
+            return
+        }
         publish()
         val bucket = session.elapsedSeconds(clock()) / SAVE_INTERVAL_SECONDS
         if (bucket != lastSavedBucket) {
@@ -174,8 +181,19 @@ class TciViewModel(
         val plan = activePlan
         if (plan != null && !session.manual) {
             val horizon = (elapsed + TciForm.HORIZON_SECONDS).coerceAtMost(TciSession.MAX_SESSION_SECONDS)
-            activeCurve =
-                simulateSchedule(_state.value.form, plan, session.confirmedAt, horizon) ?: activeCurve
+            val initial = planStartState ?: ZERO_STATE
+            val scheduled =
+                TciSchedule.simulate(
+                    form = _state.value.form,
+                    plan = plan,
+                    confirmedAt = session.confirmedAt,
+                    startSeconds = planStartSeconds,
+                    initialState = initial,
+                    horizonSeconds = horizon,
+                )
+            if (scheduled != null) {
+                activeCurve = mergeCurve(activeCurve, scheduled, planStartSeconds)
+            }
         }
         publish()
         syncNotifier()
@@ -361,6 +379,7 @@ class TciViewModel(
                 .getOrNull()
                 ?.coerceIn(MIN_STEP, MAX_STEP) ?: DEFAULT_WARNING_LEAD_MINUTES
         restoring = false
+        seenNotificationRevision = TciNotificationBus.revision
 
         if (snapshot == null) {
             val form =
@@ -419,7 +438,14 @@ class TciViewModel(
                 (session.elapsedSeconds(clock()) + TciForm.HORIZON_SECONDS)
                     .coerceAtMost(TciSession.MAX_SESSION_SECONDS)
             activeCurve =
-                simulateSchedule(form, restoredPlanRef, session.confirmedAt, horizon) ?: activeCurve
+                TciSchedule.simulate(
+                    form = form,
+                    plan = restoredPlanRef,
+                    confirmedAt = session.confirmedAt,
+                    startSeconds = planStartSeconds,
+                    initialState = planStartState ?: ZERO_STATE,
+                    horizonSeconds = horizon,
+                ) ?: activeCurve
         }
         activeTarget = form.targetText.toBigDecimalOrNull()
         val pausedAt = session.pausedAtEpochMs
@@ -543,59 +569,6 @@ class TciViewModel(
      * подтверждения, а если его не было — по плановому времени. Так опоздание
      * подтверждения сдвигает модель, а не игнорируется.
      */
-    @Suppress("CyclomaticComplexMethod")
-    private fun simulateSchedule(
-        form: TciForm,
-        plan: PumpPlan,
-        confirmedAt: Map<Int, Int>,
-        horizonSeconds: Int,
-    ): List<SimStep>? {
-        val params = parametersOf(form) ?: return null
-        val changes = ArrayList<Pair<Int, BigDecimal>>()
-        changes.add(0 to BigDecimal.ZERO)
-        var last = 0
-        for (step in plan.steps) {
-            val at = (confirmedAt[step.offsetSeconds] ?: step.offsetSeconds).coerceAtLeast(last)
-            if (at >= horizonSeconds) break
-            last = at
-            if (changes.last().first == at) {
-                changes[changes.lastIndex] = at to step.rateMlPerHour
-            } else {
-                changes.add(at to step.rateMlPerHour)
-            }
-        }
-
-        var state = TciState(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
-        var t = 0
-        var index = 0
-        val curve = ArrayList<SimStep>()
-        while (t < horizonSeconds) {
-            while (index + 1 < changes.size && changes[index + 1].first <= t) index++
-            val rate = changes[index].second
-            val end = minOf(changes.getOrNull(index + 1)?.first ?: horizonSeconds, horizonSeconds)
-            if (end <= t) {
-                index++
-                continue
-            }
-            val segment =
-                TciEngine.simulateConstantRate(
-                    params = params,
-                    fromState = state,
-                    fromOffsetSeconds = t,
-                    rateMlPerHour = rate,
-                    concentrationMgPerMl = form.concentrationMgPerMl,
-                    horizonSeconds = end - t,
-                )
-            for (step in segment) {
-                if (curve.isEmpty() || step.timeSeconds > curve.last().timeSeconds) curve.add(step)
-            }
-            state = segment.last().state
-            t = end
-            index++
-        }
-        return curve
-    }
-
     private fun buildManualCurveFrom(
         curve: List<SimStep>?,
         form: TciForm,
@@ -647,6 +620,9 @@ class TciViewModel(
                 session = session,
                 plan = plan,
                 curve = activeCurve ?: plan.predicted,
+                form = _state.value.form,
+                planStartSeconds = planStartSeconds,
+                planStartState = planStartState,
                 pauseCurve = pauseCurve,
                 manualCurve = manualCurve,
             ),
@@ -667,5 +643,6 @@ class TciViewModel(
 
         val DEFAULT_BOLUS_RATE = BigDecimal("1200")
         val MAX_TARGET_MCG_ML = BigDecimal("20")
+        val ZERO_STATE = TciState(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
     }
 }

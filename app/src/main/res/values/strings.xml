@@ -237,7 +237,10 @@
     <string name="tci_notif_due">Time to set %1$s mL/h</string>
     <string name="tci_notif_paused">Paused — pump rate 0 mL/h</string>
     <string name="tci_notif_steady">Steady rate %1$s mL/h</string>
+    <string name="tci_notif_action_pause">Pause</string>
+    <string name="tci_notif_action_confirm">I have set it</string>
 </resources>
+
 
 
 

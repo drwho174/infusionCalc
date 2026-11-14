@@ -3,6 +3,8 @@ package com.drwho174.infusioncalc.notif
 import com.drwho174.infusioncalc.tci.PumpPlan
 import com.drwho174.infusioncalc.tci.SimStep
 import com.drwho174.infusioncalc.tci.TargetMode
+import com.drwho174.infusioncalc.tci.TciState
+import com.drwho174.infusioncalc.ui.viewmodel.TciForm
 import com.drwho174.infusioncalc.ui.viewmodel.TciSession
 import com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus
 import java.math.BigDecimal
@@ -16,6 +18,9 @@ data class TciNotificationModel(
     val session: TciSession,
     val plan: PumpPlan,
     val curve: List<SimStep>,
+    val form: TciForm,
+    val planStartSeconds: Int = 0,
+    val planStartState: TciState? = null,
     val pauseCurve: List<SimStep>? = null,
     val manualCurve: List<SimStep>? = null,
 )

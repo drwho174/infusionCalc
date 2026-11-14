@@ -32,6 +32,9 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="tci_infusion_reminder" />
         </service>
+        <receiver
+            android:name=".notif.TciActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

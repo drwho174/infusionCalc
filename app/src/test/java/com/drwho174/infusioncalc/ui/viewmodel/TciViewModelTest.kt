@@ -116,6 +116,32 @@ class TciViewModelTest {
     }
 
     @Test
+    fun `confirmation after target change keeps the current concentration`() {
+        var now = 0L
+        val viewModel = ready(clock = { now })
+        viewModel.start()
+        now = 600_000L
+        viewModel.refresh()
+        viewModel.onTargetChange("5")
+        val afterReplan =
+            viewModel.state.value.live!!
+                .cpDisplay
+                .toBigDecimal()
+
+        viewModel.confirmCurrentRate()
+
+        val afterConfirm =
+            viewModel.state.value.live!!
+                .cpDisplay
+                .toBigDecimal()
+        assertTrue("Cp must not reset to zero: $afterConfirm", afterConfirm > BigDecimal("1"))
+        assertTrue(
+            "Cp must stay close to the pre-confirmation value: $afterReplan -> $afterConfirm",
+            afterConfirm.subtract(afterReplan).abs() < BigDecimal("0.1"),
+        )
+    }
+
+    @Test
     fun `late confirmation shifts the model curve`() {
         var now = 0L
         val viewModel = ready(clock = { now })
