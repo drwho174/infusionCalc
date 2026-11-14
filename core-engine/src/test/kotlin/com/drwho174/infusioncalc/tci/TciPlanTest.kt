@@ -1,6 +1,7 @@
 package com.drwho174.infusioncalc.tci
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -122,6 +123,47 @@ class TciPlanTest {
     fun `invalid input is rejected by the plan`() {
         val result = TciEngine.pumpPlan(request(target = "0"))
         assertTrue(result is TciResult.Failure)
+    }
+
+    @Test
+    fun `replan from state adds a bolus when the target grows`() {
+        val basePlan = plan()
+        val at = 600
+        val state = basePlan.predicted.last { it.timeSeconds <= at }.state
+        val params =
+            (TciEngine.parameters(TciModel.MARSH, BigDecimal("70"), null, null, null) as TciResult.Success).value
+
+        val replan = TciEngine.pumpPlanFromState(request(target = "6"), params, state, at)
+
+        assertTrue("expected an additional bolus", replan.bolusMl > BigDecimal.ZERO)
+        assertTrue(replan.bolusTimeSeconds > 0)
+        assertEquals(at, replan.steps.first().offsetSeconds)
+        assertTrue(replan.steps.first().bolus)
+        assertEquals(at, replan.predicted.first().timeSeconds)
+        assertClose("6.0", replan.predicted.last().cpMcgPerMl, "0.6")
+    }
+
+    @Test
+    fun `replan without a bolus when the target drops`() {
+        val basePlan = plan()
+        val at = 600
+        val state = basePlan.predicted.last { it.timeSeconds <= at }.state
+        val params =
+            (TciEngine.parameters(TciModel.MARSH, BigDecimal("70"), null, null, null) as TciResult.Success).value
+
+        val replan = TciEngine.pumpPlanFromState(request(target = "3"), params, state, at)
+
+        assertEquals(0, replan.bolusMl.signum())
+        assertFalse(replan.steps.first().bolus)
+        assertEquals(at, replan.predicted.first().timeSeconds)
+        assertClose("3.0", replan.predicted.last().cpMcgPerMl, "0.5")
+    }
+
+    @Test
+    fun `rate formatting keeps one decimal`() {
+        assertEquals(0, BigDecimal("0.5").compareTo(TciEngine.formatRateMlPerHour(BigDecimal("0.46"))))
+        assertEquals(0, BigDecimal("104.2").compareTo(TciEngine.formatRateMlPerHour(BigDecimal("104.16"))))
+        assertEquals(0, BigDecimal("0.0").compareTo(TciEngine.formatRateMlPerHour(BigDecimal("0.04"))))
     }
 
     private fun assertDecimal(expected: String, actual: BigDecimal) {

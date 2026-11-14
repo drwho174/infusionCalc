@@ -36,9 +36,6 @@ data class TciForm(
     val sex: Sex = Sex.MALE,
     val targetText: String = "",
     val wakeThresholdText: String = "1.5",
-    val inductionDone: Boolean = false,
-    val maintenanceDone: Boolean = false,
-    val emergenceDone: Boolean = false,
 ) {
     companion object {
         const val HORIZON_SECONDS = TciEngine.DEFAULT_HORIZON_SECONDS
@@ -83,6 +80,18 @@ data class TciComputed(
     val rateTable: List<RateTableRow>,
 )
 
+/** Пересчитывает отображаемые значения под новый план (смена цели, возврат из ручного режима). */
+internal fun TciComputed.withPlan(plan: PumpPlan): TciComputed =
+    copy(
+        bolusMlDisplay = TciEngine.formatVolumeMl(plan.bolusMl).display(),
+        bolusTimeDisplay = formatBolusTime(plan.bolusTimeSeconds),
+        bolusRateDisplay = TciEngine.formatRateMlPerHour(plan.bolusRateMlPerHour).display(),
+        maintenanceStartDisplay = TciEngine.formatRateMlPerHour(plan.maintenanceStartMlPerHour).display(),
+        maintenanceSteadyDisplay = TciEngine.formatRateMlPerHour(plan.maintenanceSteadyMlPerHour).display(),
+        plan = plan,
+        rateTable = buildRateTable(plan),
+    )
+
 data class TciUiState(
     val form: TciForm = TciForm(),
     val bolusRateMlPerHour: BigDecimal? = null,
@@ -91,6 +100,8 @@ data class TciUiState(
     val computed: TciComputed? = null,
     val session: TciSession = TciSession(),
     val live: TciLive? = null,
+    /** Дисклеймер скрыт пользователем («больше не показывать»). */
+    val disclaimerHidden: Boolean = false,
 ) {
     val isReady: Boolean get() = computed != null && blocking == null
 
@@ -214,16 +225,12 @@ private fun computeWarnings(
 }
 
 /**
- * Рекомендуемый диапазон цели для активного этапа (VAL-TCI-05):
- * индукция Cp 4–8, поддержание Cp ~3–6; Ce 2.5–4 в обеих фазах.
+ * Рекомендуемый диапазон цели (VAL-TCI-05): Cp 3–8, Ce 2.5–4.
+ * Без чек-листа этапов используется объединённый диапазон индукции и поддержания.
  */
 internal fun targetPhaseRange(form: TciForm): Pair<BigDecimal, BigDecimal> =
     if (form.mode == TargetMode.PLASMA) {
-        if (!form.inductionDone) {
-            BigDecimal("4") to BigDecimal("8")
-        } else {
-            BigDecimal("3") to BigDecimal("6")
-        }
+        BigDecimal("3") to BigDecimal("8")
     } else {
         BigDecimal("2.5") to BigDecimal("4")
     }

@@ -19,7 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -127,6 +127,8 @@ fun TciScreen(
     var showReview by remember { mutableStateOf(false) }
     var pendingModel by remember { mutableStateOf<TciModel?>(null) }
     var pendingMode by remember { mutableStateOf<TargetMode?>(null) }
+    var dismissedDisclaimer by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Экран не должен засыпать, пока идёт сессия: на него смотрят во время инфузии.
     val view = LocalView.current
@@ -203,6 +205,12 @@ fun TciScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.tci_settings),
+                        )
+                    }
                     TextButton(onClick = { showReview = true }) {
                         Text(stringResource(R.string.tci_review), color = MaterialTheme.colorScheme.error)
                     }
@@ -218,8 +226,6 @@ fun TciScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
         ) {
-            TciDisclaimerBanner()
-
             Spacer(Modifier.height(12.dp))
             SessionSection(
                 state = state,
@@ -227,8 +233,6 @@ fun TciScreen(
                 onPause = viewModel::pause,
                 onResume = viewModel::resume,
                 onStop = viewModel::stop,
-                onConfirm = viewModel::confirmCurrentRate,
-                onManualRate = viewModel::setManualRate,
             )
 
             Spacer(Modifier.height(12.dp))
@@ -253,9 +257,6 @@ fun TciScreen(
             Spacer(Modifier.height(12.dp))
             TargetSection(form = form, viewModel = viewModel, enabled = !active)
 
-            Spacer(Modifier.height(12.dp))
-            StageSection(form = form, viewModel = viewModel)
-
             if (blocking != null) {
                 Spacer(Modifier.height(12.dp))
                 BlockingCard(blocking = blocking)
@@ -268,9 +269,15 @@ fun TciScreen(
 
             if (computed != null) {
                 Spacer(Modifier.height(12.dp))
-                BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
+                PlotSection(
+                    computed = computed,
+                    live = live,
+                    onConfirm = viewModel::confirmCurrentRate,
+                    onManualRate = viewModel::setManualRate,
+                    onReturnToAuto = viewModel::returnToAutomatic,
+                )
                 Spacer(Modifier.height(12.dp))
-                PlotSection(computed = computed, live = live)
+                BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
                 Spacer(Modifier.height(12.dp))
                 WakeSection(
                     form = form,
@@ -321,11 +328,35 @@ fun TciScreen(
             onDismiss = { pendingMode = null },
         )
     }
+
+    if (showSettings) {
+        BolusRateDialog(
+            current = form.bolusRateText,
+            onDismiss = { showSettings = false },
+            onShowDisclaimer = {
+                viewModel.showDisclaimerAgain()
+                showSettings = false
+            },
+            onSave = { value ->
+                viewModel.onBolusRateChange(value)
+                showSettings = false
+            },
+        )
+    }
+
+    if (!state.disclaimerHidden && !dismissedDisclaimer) {
+        TciDisclaimerDialog(
+            onDismiss = { neverShow ->
+                dismissedDisclaimer = true
+                if (neverShow) viewModel.hideDisclaimerForever()
+            },
+        )
+    }
 }
 
 // ---------------------------------------------------------------------- сессия и насос
 
-@Suppress("LongMethod", "LongParameterList")
+@Suppress("LongMethod")
 @Composable
 private fun SessionSection(
     state: TciUiState,
@@ -333,12 +364,9 @@ private fun SessionSection(
     onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
-    onConfirm: () -> Unit,
-    onManualRate: (String) -> Unit,
 ) {
     val session = state.session
     val live = state.live
-    var showManual by remember { mutableStateOf(false) }
     var showStop by remember { mutableStateOf(false) }
 
     TciSectionCard(title = stringResource(R.string.tci_session_title)) {
@@ -380,14 +408,6 @@ private fun SessionSection(
                 )
             }
             Spacer(Modifier.height(8.dp))
-            if (live != null) {
-                PumpPanel(
-                    live = live,
-                    onConfirm = onConfirm,
-                    onManualRate = { showManual = true },
-                )
-            }
-            Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (session.status == TciSessionStatus.RUNNING) {
                     OutlinedButton(onClick = onPause) { Text(stringResource(R.string.tci_session_pause)) }
@@ -397,16 +417,6 @@ private fun SessionSection(
                 OutlinedButton(onClick = { showStop = true }) { Text(stringResource(R.string.tci_session_stop)) }
             }
         }
-    }
-
-    if (showManual) {
-        ManualRateDialog(
-            onDismiss = { showManual = false },
-            onConfirm = { raw ->
-                onManualRate(raw)
-                showManual = false
-            },
-        )
     }
 
     if (showStop) {
@@ -429,12 +439,14 @@ private fun SessionSection(
     }
 }
 
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun PumpPanel(
     live: TciLive,
+    computed: TciComputed,
     onConfirm: () -> Unit,
     onManualRate: () -> Unit,
+    onReturnToAuto: () -> Unit,
 ) {
     Card(
         colors =
@@ -473,11 +485,18 @@ private fun PumpPanel(
                         stringResource(R.string.tci_pump_manual_active),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                live.phase == TciPhase.BOLUS && nextIn != null ->
+                live.phase == TciPhase.BOLUS -> {
                     Text(
-                        stringResource(R.string.tci_pump_bolus_remaining, formatElapsed(nextIn)),
+                        stringResource(R.string.tci_bolus_infusion, computed.bolusMlDisplay, computed.bolusTimeDisplay),
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (nextIn != null) {
+                        Text(
+                            stringResource(R.string.tci_pump_next_in, formatElapsed(nextIn)),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
                 nextIn != null -> {
                     Text(
                         stringResource(R.string.tci_pump_next_in, formatElapsed(nextIn)),
@@ -515,8 +534,14 @@ private fun PumpPanel(
                         ),
                     )
                 }
-                TextButton(onClick = onManualRate) {
-                    Text(stringResource(R.string.tci_pump_manual_action))
+                if (live.manual) {
+                    OutlinedButton(onClick = onReturnToAuto) {
+                        Text(stringResource(R.string.tci_return_auto))
+                    }
+                } else {
+                    TextButton(onClick = onManualRate) {
+                        Text(stringResource(R.string.tci_pump_manual_action))
+                    }
                 }
             }
         }
@@ -563,31 +588,73 @@ private fun ManualRateDialog(
     )
 }
 
-// ---------------------------------------------------------------------- баннер
+// ---------------------------------------------------------------------- дисклеймер и настройки
 
 @Composable
-private fun TciDisclaimerBanner() {
-    Card(
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(modifier = Modifier.padding(12.dp)) {
-            Icon(
-                imageVector = Icons.Filled.Warning,
-                contentDescription = null,
-                modifier = Modifier.padding(end = 8.dp),
-            )
-            Text(
-                stringResource(R.string.tci_disclaimer),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+private fun TciDisclaimerDialog(onDismiss: (neverShow: Boolean) -> Unit) {
+    var neverShow by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { onDismiss(false) },
+        title = { Text(stringResource(R.string.tci_disclaimer_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.tci_disclaimer), style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = neverShow, onCheckedChange = { neverShow = it })
+                    Text(stringResource(R.string.tci_disclaimer_never), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onDismiss(neverShow) }) { Text(stringResource(R.string.ok)) }
+        },
+    )
+}
+
+@Composable
+private fun BolusRateDialog(
+    current: String,
+    onDismiss: () -> Unit,
+    onShowDisclaimer: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tci_settings_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = normalizeDecimalInput(it) },
+                    label = { Text(stringResource(R.string.tci_bolus_rate_setting)) },
+                    suffix = { Text(stringResource(R.string.tci_ml_h)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.tci_bolus_rate_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onShowDisclaimer) {
+                    Text(stringResource(R.string.tci_disclaimer_show))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(text) },
+                enabled = text.toBigDecimalOrNull()?.signum() == 1,
+            ) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
 
 // ---------------------------------------------------------------------- модель/режим
@@ -744,93 +811,15 @@ private fun TargetSection(
                 )
             },
             singleLine = true,
-            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = form.bolusRateText,
-            onValueChange = viewModel::onBolusRateChange,
-            label = { Text(stringResource(R.string.tci_bolus_rate)) },
-            suffix = { Text(stringResource(R.string.tci_ml_h)) },
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.tci_target_change_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-// ---------------------------------------------------------------------- чек-лист этапов
-
-@Composable
-private fun StageSection(
-    form: TciForm,
-    viewModel: TciViewModel,
-) {
-    val active =
-        when {
-            !form.inductionDone -> 0
-            !form.maintenanceDone -> 1
-            else -> 2
-        }
-    TciSectionCard(title = stringResource(R.string.tci_section_stages)) {
-        StageRow(
-            label = stringResource(R.string.tci_stage_induction),
-            checked = form.inductionDone,
-            active = active == 0,
-            onToggle = { viewModel.onStageToggle(induction = it) },
-        )
-        StageRow(
-            label = stringResource(R.string.tci_stage_maintenance),
-            checked = form.maintenanceDone,
-            active = active == 1,
-            onToggle = { viewModel.onStageToggle(maintenance = it) },
-        )
-        StageRow(
-            label = stringResource(R.string.tci_stage_emergence),
-            checked = form.emergenceDone,
-            active = active == 2,
-            onToggle = { viewModel.onStageToggle(emergence = it) },
-        )
-    }
-}
-
-@Composable
-private fun StageRow(
-    label: String,
-    checked: Boolean,
-    active: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    val bg =
-        if (active) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(bg, MaterialTheme.shapes.small)
-                .padding(end = 8.dp),
-    ) {
-        Checkbox(checked = checked, onCheckedChange = onToggle)
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        if (checked || active) {
-            Text(
-                text =
-                    stringResource(
-                        if (checked) R.string.tci_stage_done else R.string.tci_stage_active,
-                    ),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 4.dp),
-            )
-        }
     }
 }
 
@@ -1012,13 +1001,28 @@ private fun BolusSection(
 
 // ---------------------------------------------------------------------- график
 
+@Suppress("LongMethod")
 @Composable
 private fun PlotSection(
     computed: TciComputed,
     live: TciLive?,
+    onConfirm: () -> Unit,
+    onManualRate: (String) -> Unit,
+    onReturnToAuto: () -> Unit,
 ) {
+    var showManual by remember { mutableStateOf(false) }
     val elapsed = live?.elapsedSeconds ?: 0
     TciSectionCard(title = stringResource(R.string.tci_section_plot)) {
+        if (live != null) {
+            PumpPanel(
+                live = live,
+                computed = computed,
+                onConfirm = onConfirm,
+                onManualRate = { showManual = true },
+                onReturnToAuto = onReturnToAuto,
+            )
+            Spacer(Modifier.height(12.dp))
+        }
         Row(verticalAlignment = Alignment.Bottom) {
             BigValue(
                 value = live?.cpDisplay ?: "—",
@@ -1069,6 +1073,16 @@ private fun PlotSection(
                 },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
+    if (showManual) {
+        ManualRateDialog(
+            onDismiss = { showManual = false },
+            onConfirm = { raw ->
+                onManualRate(raw)
+                showManual = false
+            },
         )
     }
 }

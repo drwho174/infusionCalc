@@ -39,13 +39,14 @@ internal const val OVERDUE_SECONDS = 60
  * Собирает живое состояние из плана, формы и сессии. Чистая функция:
  * время передаётся снаружи, поэтому её легко проверять тестами.
  */
-@Suppress("CyclomaticComplexMethod")
+@Suppress("CyclomaticComplexMethod", "LongParameterList")
 internal fun buildLive(
     plan: PumpPlan,
     form: TciForm,
     session: TciSession,
     nowMs: Long,
     manualCurve: List<SimStep>?,
+    sessionCurve: List<SimStep>? = null,
 ): TciLive? {
     if (!session.isActive) return null
     val elapsed = session.elapsedSeconds(nowMs)
@@ -53,7 +54,12 @@ internal fun buildLive(
     val manualRate = session.manualRateMlPerHour
     val manualActive = manualRate != null && manualFrom != null && elapsed >= manualFrom && manualCurve != null
 
-    val curve = if (manualActive) manualCurve else plan.predicted
+    val curve: List<SimStep> =
+        if (manualActive && manualCurve != null) {
+            manualCurve
+        } else {
+            sessionCurve ?: plan.predicted
+        }
     val point = curve.lastOrNull { it.timeSeconds <= elapsed } ?: curve.lastOrNull()
     val state = point?.state
 

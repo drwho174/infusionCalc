@@ -74,6 +74,9 @@ data class TciSession(
             manualRateMlPerHour = rateMlPerHour,
         )
 
+    /** Возврат к автоматической программе. */
+    fun clearManual(): TciSession = copy(manualFromSeconds = null, manualRateMlPerHour = null)
+
     fun confirm(offsetSeconds: Int): TciSession = copy(confirmedOffsets = confirmedOffsets + offsetSeconds)
 
     companion object {

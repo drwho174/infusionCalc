@@ -3,11 +3,14 @@ package com.drwho174.infusioncalc.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drwho174.infusioncalc.data.session.TciSessionStore
+import com.drwho174.infusioncalc.tci.PumpPlan
 import com.drwho174.infusioncalc.tci.Sex
 import com.drwho174.infusioncalc.tci.SimStep
 import com.drwho174.infusioncalc.tci.TargetMode
 import com.drwho174.infusioncalc.tci.TciEngine
 import com.drwho174.infusioncalc.tci.TciModel
+import com.drwho174.infusioncalc.tci.TciSimRequest
+import com.drwho174.infusioncalc.tci.TciState
 import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +26,7 @@ import java.math.BigDecimal
  * переживает убийство процесса (сценарий B). Данные пациента при этом хранятся
  * только локально в снимке и стираются при завершении сессии.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "ReturnCount")
 class TciViewModel(
     private val store: TciSessionStore,
     private val clock: () -> Long = { System.currentTimeMillis() },
@@ -33,6 +36,13 @@ class TciViewModel(
 
     private var session = TciSession()
     private var manualCurve: List<SimStep>? = null
+
+    /** Действующий план: с нуля либо пересчитанный от состояния на [planStartSeconds]. */
+    private var activePlan: PumpPlan? = null
+    private var activeCurve: List<SimStep>? = null
+    private var activeTarget: BigDecimal? = null
+    private var planStartSeconds = 0
+    private var planStartState: TciState? = null
     private var lastSavedBucket = -1
     private var restoring = true
 
@@ -43,14 +53,8 @@ class TciViewModel(
     /** Перерисовка по часам; фон не останавливает сессию. */
     fun refresh() {
         if (restoring || !session.isActive) return
-        val computed = _state.value.computed ?: return
-        val now = clock()
-        _state.value =
-            _state.value.copy(
-                session = session,
-                live = buildLive(computed.plan, _state.value.form, session, now, manualCurve),
-            )
-        val bucket = session.elapsedSeconds(now) / SAVE_INTERVAL_SECONDS
+        publish()
+        val bucket = session.elapsedSeconds(clock()) / SAVE_INTERVAL_SECONDS
         if (bucket != lastSavedBucket) {
             lastSavedBucket = bucket
             persist()
@@ -63,10 +67,18 @@ class TciViewModel(
         val now = clock()
         session = TciSession().start(now)
         manualCurve = null
+        activePlan = computed.plan
+        activeCurve = computed.plan.predicted
+        activeTarget =
+            _state.value.form.targetText
+                .toBigDecimalOrNull()
+        planStartSeconds = 0
+        planStartState = null
         _state.value =
             _state.value.copy(
                 session = session,
-                live = buildLive(computed.plan, _state.value.form, session, now, null),
+                live = buildLive(computed.plan, _state.value.form, session, now, null, activeCurve),
+                disclaimerHidden = _state.value.disclaimerHidden,
             )
         lastSavedBucket = 0
         persist()
@@ -89,8 +101,14 @@ class TciViewModel(
     fun stop() {
         session = TciSession()
         manualCurve = null
+        activePlan = null
+        activeCurve = null
+        activeTarget = null
+        planStartSeconds = 0
+        planStartState = null
         lastSavedBucket = -1
-        _state.value = buildTciState(_state.value.form)
+        _state.value =
+            buildTciState(_state.value.form).copy(disclaimerHidden = _state.value.disclaimerHidden)
         viewModelScope.launch { runCatching { store.clear() } }
     }
 
@@ -106,17 +124,71 @@ class TciViewModel(
     fun setManualRate(raw: String) {
         val rate = raw.toBigDecimalOrNull()?.takeIf { it.signum() > 0 } ?: return
         if (!session.isActive) return
+        val current = _state.value
+        val state = current.live?.state ?: return
+        val elapsed = session.elapsedSeconds(clock())
         session = session.setManual(rate, clock())
-        manualCurve = buildManualCurve(_state.value, session)
+        manualCurve = simulateManual(current.form, state, elapsed, rate)
         publish()
         persist()
+    }
+
+    /** Возврат из ручного режима к автоматической программе от текущего состояния. */
+    fun returnToAutomatic() {
+        if (!session.manual) return
+        val live = _state.value.live ?: return
+        applyReplan(live.state ?: return, live.elapsedSeconds, _state.value.form.targetText)
+    }
+
+    /** Смена цели во время инфузии: дополнительный болюс (если нужен) и новый план. */
+    fun onTargetChange(raw: String) {
+        val text = normalizeDecimalInput(raw)
+        if (!session.isActive) {
+            update { it.copy(targetText = text) }
+            return
+        }
+        val current = _state.value
+        _state.value = current.copy(form = current.form.copy(targetText = text))
+        val target = text.toBigDecimalOrNull() ?: return
+        if (target.signum() <= 0 || target > MAX_TARGET_MCG_ML) return
+        if (activeTarget?.compareTo(target) == 0) return
+        applyReplan(current.live?.state ?: return, session.elapsedSeconds(clock()), text)
+    }
+
+    /** Скорость болюса задаётся в настройках из appbar. */
+    fun onBolusRateChange(raw: String) {
+        val text = normalizeDecimalInput(raw)
+        val base = _state.value
+        val form = base.form.copy(bolusRateText = text)
+        _state.value =
+            if (session.isActive) {
+                base.copy(form = form)
+            } else {
+                buildTciState(form).copy(disclaimerHidden = base.disclaimerHidden)
+            }
+        text.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }?.let { value ->
+            viewModelScope.launch { runCatching { store.saveBolusRateMlPerHour(value) } }
+        }
+    }
+
+    /** «Больше не показывать» для дисклеймера. */
+    fun hideDisclaimerForever() {
+        _state.value = _state.value.copy(disclaimerHidden = true)
+        viewModelScope.launch { runCatching { store.setDisclaimerHidden(true) } }
+    }
+
+    /** Вернуть дисклеймер (из настроек). */
+    fun showDisclaimerAgain() {
+        _state.value = _state.value.copy(disclaimerHidden = false)
+        viewModelScope.launch { runCatching { store.setDisclaimerHidden(false) } }
     }
 
     // ------------------------------------------------------------------ ввод формы
 
     private fun update(transform: (TciForm) -> TciForm) {
         if (restoring || session.isActive) return
-        _state.value = buildTciState(transform(_state.value.form))
+        val base = buildTciState(transform(_state.value.form))
+        _state.value = base.copy(disclaimerHidden = _state.value.disclaimerHidden)
     }
 
     fun onWeightChange(raw: String) = update { it.copy(weightText = normalizeDecimalInput(raw)) }
@@ -125,42 +197,13 @@ class TciViewModel(
 
     fun onAgeChange(raw: String) = update { it.copy(ageText = raw.filter(Char::isDigit)) }
 
-    fun onTargetChange(raw: String) = update { it.copy(targetText = normalizeDecimalInput(raw)) }
-
     fun onThresholdChange(raw: String) = update { it.copy(wakeThresholdText = normalizeDecimalInput(raw)) }
-
-    fun onBolusRateChange(raw: String) = update { it.copy(bolusRateText = normalizeDecimalInput(raw)) }
 
     fun onConcentrationSelected(conc: BigDecimal) = update { it.copy(concentrationMgPerMl = conc) }
 
     fun onSexSelected(sex: Sex) = update { it.copy(sex = sex) }
 
-    fun onStageToggle(
-        induction: Boolean? = null,
-        maintenance: Boolean? = null,
-        emergence: Boolean? = null,
-    ) {
-        if (restoring) return
-        val form =
-            _state.value.form.copy(
-                inductionDone = induction ?: _state.value.form.inductionDone,
-                maintenanceDone = maintenance ?: _state.value.form.maintenanceDone,
-                emergenceDone = emergence ?: _state.value.form.emergenceDone,
-            )
-        val base = buildTciState(form)
-        if (session.isActive) {
-            val computed = base.computed ?: return
-            _state.value =
-                base.copy(
-                    session = session,
-                    live = buildLive(computed.plan, form, session, clock(), manualCurve),
-                )
-        } else {
-            _state.value = base
-        }
-    }
-
-    /** Смена модели очищает зависящие от модели поля и сбрасывает расчёт/чек-лист (FR-TCI-MDL-04). */
+    /** Смена модели очищает зависящие от модели поля и сбрасывает расчёт (FR-TCI-MDL-04). */
     fun changeModel(model: TciModel) {
         if (model == _state.value.form.model) return
         update {
@@ -168,87 +211,193 @@ class TciViewModel(
                 model = model,
                 heightText = "",
                 ageText = "",
-                inductionDone = false,
-                maintenanceDone = false,
-                emergenceDone = false,
             )
         }
     }
 
-    /** Смена режима сбрасывает расчёт/чек-лист (FR-TCI-TGT-03). */
+    /** Смена режима сбрасывает расчёт (FR-TCI-TGT-03). */
     fun changeMode(mode: TargetMode) {
         if (mode == _state.value.form.mode) return
-        update {
-            it.copy(
-                mode = mode,
-                inductionDone = false,
-                maintenanceDone = false,
-                emergenceDone = false,
-            )
-        }
+        update { it.copy(mode = mode) }
     }
 
     // ------------------------------------------------------------------ служебное
 
     private fun publish() {
-        val computed = _state.value.computed ?: return
+        val plan = activePlan ?: _state.value.computed?.plan ?: return
         _state.value =
             _state.value.copy(
                 session = session,
-                live = buildLive(computed.plan, _state.value.form, session, clock(), manualCurve),
+                live = buildLive(plan, _state.value.form, session, clock(), manualCurve, activeCurve),
+                disclaimerHidden = _state.value.disclaimerHidden,
             )
     }
 
     private suspend fun restore() {
         val snapshot = runCatching { store.load() }.getOrNull()
+        val hidden = runCatching { store.isDisclaimerHidden() }.getOrDefault(false)
+        val storedBolusRate = runCatching { store.loadBolusRateMlPerHour() }.getOrNull()
         restoring = false
-        if (snapshot == null) return
+
+        if (snapshot == null) {
+            val form =
+                TciForm(
+                    bolusRateText = (storedBolusRate ?: DEFAULT_BOLUS_RATE).toPlainString(),
+                )
+            val base = buildTciState(form)
+            activePlan = base.computed?.plan
+            activeCurve = activePlan?.predicted
+            _state.value = base.copy(disclaimerHidden = hidden)
+            return
+        }
+
         val form = snapshot.toForm()
         val base = buildTciState(form)
-        if (base.computed == null) {
+        val computed = base.computed
+        if (computed == null) {
             session = TciSession()
-            _state.value = base
+            _state.value = base.copy(disclaimerHidden = hidden)
             return
         }
         session = snapshot.toSession()
-        manualCurve = if (session.manual) buildManualCurve(base, session) else null
+        planStartSeconds = snapshot.planStartSeconds
+        planStartState = snapshot.planStartState()
+        val restoredPlan =
+            if (planStartSeconds > 0 && planStartState != null) {
+                replanFromState(form, planStartState!!, planStartSeconds)
+            } else {
+                null
+            }
+        activePlan = restoredPlan ?: computed.plan
+        activeCurve = activePlan?.predicted
+        activeTarget = form.targetText.toBigDecimalOrNull()
+        manualCurve =
+            if (session.manual) {
+                buildManualCurveFrom(activeCurve, form, session)
+            } else {
+                null
+            }
         val now = clock()
-        val computed = base.computed
         _state.value =
             base.copy(
+                computed = computed.withPlan(activePlan!!),
                 session = session,
-                live = buildLive(computed.plan, form, session, now, manualCurve),
+                live = buildLive(activePlan!!, form, session, now, manualCurve, activeCurve),
+                disclaimerHidden = hidden,
             )
         lastSavedBucket = session.elapsedSeconds(now) / SAVE_INTERVAL_SECONDS
     }
 
-    @Suppress("ReturnCount")
-    private fun buildManualCurve(
-        base: TciUiState,
+    /**
+     * Пересчитывает действующий план от [state] на [elapsedSeconds] под текущую цель
+     * и сохраняет сессию. Используется сменой цели и возвратом из ручного режима.
+     */
+    private fun applyReplan(
+        state: TciState,
+        elapsedSeconds: Int,
+        targetText: String,
+    ) {
+        val live = _state.value.live
+        val form = _state.value.form.copy(targetText = targetText)
+        val base = buildTciState(form)
+        val computed = base.computed ?: return
+        val plan = replanFromState(form, state, elapsedSeconds) ?: return
+
+        session = session.clearManual()
+        manualCurve = null
+        activePlan = plan
+        activeCurve = mergeCurve(live?.curve ?: computed.plan.predicted, plan.predicted, elapsedSeconds)
+        activeTarget = targetText.toBigDecimalOrNull()
+        planStartSeconds = elapsedSeconds
+        planStartState = state
+        _state.value =
+            base.copy(
+                computed = computed.withPlan(plan),
+                session = session,
+                live = buildLive(plan, form, session, clock(), null, activeCurve),
+                disclaimerHidden = _state.value.disclaimerHidden,
+            )
+        persist()
+    }
+
+    private fun replanFromState(
+        form: TciForm,
+        state: TciState,
+        startSeconds: Int,
+    ): PumpPlan? {
+        val params = parametersOf(form) ?: return null
+        val request = requestOf(form) ?: return null
+        return runCatching {
+            TciEngine.pumpPlanFromState(request, params, state, startSeconds)
+        }.getOrNull()
+    }
+
+    private fun simulateManual(
+        form: TciForm,
+        state: TciState,
+        elapsedSeconds: Int,
+        rate: BigDecimal,
+    ): List<SimStep>? {
+        val params = parametersOf(form) ?: return null
+        return runCatching {
+            TciEngine.simulateConstantRate(
+                params = params,
+                fromState = state,
+                fromOffsetSeconds = elapsedSeconds,
+                rateMlPerHour = rate,
+                concentrationMgPerMl = form.concentrationMgPerMl,
+                horizonSeconds = TciForm.HORIZON_SECONDS,
+            )
+        }.getOrNull()
+    }
+
+    private fun buildManualCurveFrom(
+        curve: List<SimStep>?,
+        form: TciForm,
         current: TciSession,
     ): List<SimStep>? {
-        val plan = base.computed?.plan ?: return null
         val from = current.manualFromSeconds ?: return null
         val rate = current.manualRateMlPerHour ?: return null
-        val point = plan.predicted.lastOrNull { it.timeSeconds <= from } ?: plan.predicted.firstOrNull() ?: return null
-        val params = parametersOf(base.form) ?: return null
-        return TciEngine.simulateConstantRate(
-            params = params,
-            fromState = point.state,
-            fromOffsetSeconds = from,
-            rateMlPerHour = rate,
-            concentrationMgPerMl = base.form.concentrationMgPerMl,
+        val point = curve?.lastOrNull { it.timeSeconds <= from } ?: curve?.firstOrNull() ?: return null
+        return simulateManual(form, point.state, from, rate)
+    }
+
+    private fun mergeCurve(
+        prefix: List<SimStep>?,
+        predicted: List<SimStep>,
+        fromSeconds: Int,
+    ): List<SimStep> {
+        val history = prefix?.filter { it.timeSeconds < fromSeconds } ?: emptyList()
+        return history + predicted.filter { it.timeSeconds >= fromSeconds }
+    }
+
+    private fun requestOf(form: TciForm): TciSimRequest? {
+        val weight = form.weightText.toBigDecimalOrNull() ?: return null
+        val target = form.targetText.toBigDecimalOrNull() ?: return null
+        val bolusRate = form.bolusRateText.toBigDecimalOrNull() ?: return null
+        return TciSimRequest(
+            model = form.model,
+            targetMcgPerMl = target,
+            mode = form.mode,
+            concentrationMgPerMl = form.concentrationMgPerMl,
+            bolusRateMlPerHour = bolusRate,
+            weightKg = weight,
+            heightCm = form.heightText.toBigDecimalOrNull(),
+            ageYears = form.ageText.trim().toIntOrNull(),
+            sex = form.sex,
             horizonSeconds = TciForm.HORIZON_SECONDS,
         )
     }
 
     private fun persist() {
-        val snapshot = _state.value.form.toSnapshot(session)
+        val snapshot = _state.value.form.toSnapshot(session, planStartSeconds, planStartState)
         viewModelScope.launch { runCatching { store.save(snapshot) } }
     }
 
     private companion object {
         /** Как часто обновлять снимок, пока сессия идёт. */
         const val SAVE_INTERVAL_SECONDS = 15
+        val DEFAULT_BOLUS_RATE = BigDecimal("1200")
+        val MAX_TARGET_MCG_ML = BigDecimal("20")
     }
 }

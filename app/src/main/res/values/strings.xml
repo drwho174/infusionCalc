@@ -131,9 +131,8 @@
     <string name="tci_section_model_mode">Model and mode</string>
     <string name="tci_section_patient">Patient data</string>
     <string name="tci_section_target">Target and concentration</string>
-    <string name="tci_section_stages">Stages</string>
     <string name="tci_section_bolus">Bolus and rate</string>
-    <string name="tci_section_plot">Concentration over time</string>
+    <string name="tci_section_plot">Rate and concentration</string>
     <string name="tci_section_wake">Time to awakening</string>
     <string name="tci_model">Model</string>
     <string name="tci_model_marsh">Marsh</string>
@@ -158,14 +157,8 @@
     <string name="tci_mcg_ml">mcg/mL</string>
     <string name="tci_range_hint_cp">Induction 4–8 · maintenance ~3–6 mcg/mL</string>
     <string name="tci_range_hint_ce">Induction 2.5–4 · maintenance 2.5–4 mcg/mL</string>
-    <string name="tci_stage_induction">Induction (bolus)</string>
-    <string name="tci_stage_maintenance">Maintenance</string>
-    <string name="tci_stage_emergence">Emergence</string>
-    <string name="tci_stage_active">active</string>
-    <string name="tci_stage_done">done</string>
     <string name="tci_bolus">Bolus</string>
     <string name="tci_bolus_time">in %1$s</string>
-    <string name="tci_bolus_rate">Bolus rate</string>
     <string name="tci_maintenance">Maintenance</string>
     <string name="tci_maintenance_start">start</string>
     <string name="tci_maintenance_steady">steady</string>
@@ -189,7 +182,7 @@
     <string name="tci_warn_age">Check the age: %1$s years.</string>
     <string name="tci_warn_bmi">BMI %1$s is outside the Schnider range (male &lt; 42, female &lt; 35 kg/m²). Choose Marsh or check the data.</string>
     <string name="tci_warn_target">Target concentration %1$s mcg/mL is outside the recommended range (%2$s). Check the phase and target.</string>
-    <string name="tci_confirm_reset">Changing %1$s will reset the calculation and stage marks. Continue?</string>
+    <string name="tci_confirm_reset">Changing %1$s will reset the calculation. Continue?</string>
     <string name="tci_continue">Continue</string>
     <string name="tci_review_title">Check before induction</string>
     <string name="tci_review_model">Model</string>
@@ -214,7 +207,6 @@
     <string name="tci_pump_phase_bolus">Bolus</string>
     <string name="tci_pump_phase_maintenance">Maintenance</string>
     <string name="tci_pump_manual_mode">Manual rate</string>
-    <string name="tci_pump_bolus_remaining">Bolus, until maintenance: %1$s</string>
     <string name="tci_pump_next_in">Next change in %1$s</string>
     <string name="tci_pump_next_rate">then %1$s</string>
     <string name="tci_pump_steady">Steady rate reached — no further changes planned.</string>
@@ -230,4 +222,16 @@
     <string name="tci_plot_elapsed">Elapsed: %1$s</string>
     <string name="tci_live_summary">Cp %1$s · Ce %2$s mcg/mL · awakening in %3$s</string>
     <string name="tci_wake_needs_session">Start the session to predict the time to awakening.</string>
+    <string name="tci_disclaimer_title">Before starting</string>
+    <string name="tci_disclaimer_never">Do not show again</string>
+    <string name="tci_disclaimer_show">Show the disclaimer again</string>
+    <string name="tci_settings">TCI settings</string>
+    <string name="tci_settings_title">TCI settings</string>
+    <string name="tci_bolus_rate_setting">Bolus rate</string>
+    <string name="tci_bolus_rate_hint">Used for the loading dose; the app shows how much and how long.</string>
+    <string name="tci_bolus_infusion">Bolus %1$s mL over %2$s</string>
+    <string name="tci_return_auto">Back to automatic programme</string>
+    <string name="tci_target_change_hint">The target can be changed during infusion — the bolus is recalculated.</string>
 </resources>
+
+

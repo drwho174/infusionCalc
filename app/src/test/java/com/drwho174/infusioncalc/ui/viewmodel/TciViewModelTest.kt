@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -34,6 +35,8 @@ class TciViewModelTest {
         var saved: TciSessionSnapshot? = null,
     ) : TciSessionStore {
         var cleared = false
+        var disclaimerHidden = false
+        var bolusRate: BigDecimal? = null
 
         override suspend fun load(): TciSessionSnapshot? = saved
 
@@ -44,6 +47,18 @@ class TciViewModelTest {
         override suspend fun clear() {
             saved = null
             cleared = true
+        }
+
+        override suspend fun isDisclaimerHidden(): Boolean = disclaimerHidden
+
+        override suspend fun setDisclaimerHidden(hidden: Boolean) {
+            disclaimerHidden = hidden
+        }
+
+        override suspend fun loadBolusRateMlPerHour(): BigDecimal? = bolusRate
+
+        override suspend fun saveBolusRateMlPerHour(value: BigDecimal) {
+            bolusRate = value
         }
     }
 
@@ -167,6 +182,76 @@ class TciViewModelTest {
     }
 
     @Test
+    fun `changing the target during infusion adds a bolus and replans`() {
+        var now = 0L
+        val viewModel = ready(clock = { now })
+        viewModel.start()
+        now = 10 * 60_000L
+        viewModel.refresh()
+        val before =
+            viewModel.state.value.computed!!
+                .plan
+
+        viewModel.onTargetChange("6")
+
+        val after =
+            viewModel.state.value.computed!!
+                .plan
+        assertTrue("expected an additional bolus", after.bolusMl > BigDecimal.ZERO)
+        assertTrue("the additional bolus is smaller than the loading dose", after.bolusMl < before.bolusMl)
+        assertTrue(after.bolusTimeSeconds > 0)
+        assertEquals(600, after.steps.first().offsetSeconds)
+        assertTrue(after.steps.first().bolus)
+        assertEquals(
+            600,
+            viewModel.state.value.live!!
+                .elapsedSeconds,
+        )
+    }
+
+    @Test
+    fun `manual rate can be replaced by the automatic programme`() {
+        var now = 0L
+        val viewModel = ready(clock = { now })
+        viewModel.start()
+        now = 10 * 60_000L
+        viewModel.refresh()
+
+        viewModel.setManualRate("60")
+        assertTrue(
+            viewModel.state.value.live!!
+                .manual,
+        )
+
+        viewModel.returnToAutomatic()
+        val live = viewModel.state.value.live!!
+        assertFalse(live.manual)
+        assertTrue(BigDecimal("60").compareTo(live.currentRateMlPerHour) != 0)
+    }
+
+    @Test
+    fun `disclaimer can be suppressed forever`() {
+        val store = FakeStore()
+        val viewModel = ready(store, clock = { 0L })
+
+        viewModel.hideDisclaimerForever()
+
+        assertTrue(viewModel.state.value.disclaimerHidden)
+        assertTrue(store.disclaimerHidden)
+    }
+
+    @Test
+    fun `bolus rate setting is persisted`() {
+        val store = FakeStore()
+        val viewModel = ready(store, clock = { 0L })
+
+        viewModel.onBolusRateChange("600")
+
+        assertEquals(0, BigDecimal("600").compareTo(store.bolusRate))
+        assertEquals("600", viewModel.state.value.form.bolusRateText)
+    }
+
+    @Test
     fun `snapshot round trip keeps form and session`() {
         val form =
             TciForm(
@@ -174,7 +259,6 @@ class TciViewModelTest {
                 heightText = "170",
                 ageText = "40",
                 targetText = "4",
-                inductionDone = true,
             )
         val session =
             TciSession()

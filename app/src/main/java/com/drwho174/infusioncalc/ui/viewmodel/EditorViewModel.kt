@@ -38,7 +38,11 @@ data class EditorUiState(
     val valid: Boolean = false,
 )
 
-/** Редактор карточки препарата. Правка встроенного препарата сохраняется копией в «Мои». */
+/**
+ * Редактор карточки препарата. Правка встроенного препарата сохраняется **на месте**:
+ * копия с тем же названием создавала бы дубликат в списке (баг FR-CUSTOM-06).
+ * От перезаписи сидом правку защищает [revision] > 1 (см. [CatalogSeeder]).
+ */
 class EditorViewModel(
     private val initialDrugId: String?,
     private val repository: DrugRepository,
@@ -76,17 +80,51 @@ class EditorViewModel(
 
     fun onMassUnitChange(value: AmountUnit) = update { it.copy(massUnit = value) }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun save(onSaved: (String) -> Unit) {
         val current = _state.value
         if (!current.valid) return
 
         val base = existing
-        val isCopyOfBuiltIn = base?.isBuiltIn == true
-        val isNewOrCopy = base == null || isCopyOfBuiltIn
-        val id = if (isNewOrCopy) UUID.randomUUID().toString() else base.id
+        val keptBuiltIn = base?.isBuiltIn == true
+        val id = base?.id ?: UUID.randomUUID().toString()
 
-        val schemeId = UUID.randomUUID().toString()
-        val presetId = UUID.randomUUID().toString()
+        val schemeId = base?.defaultScheme?.id ?: UUID.randomUUID().toString()
+        val presetId = base?.defaultPreset?.id ?: UUID.randomUUID().toString()
+        val editedScheme =
+            DoseScheme(
+                id = schemeId,
+                drugId = id,
+                amountUnit = current.unit,
+                perKg = current.perKg,
+                perTime = current.timeBase,
+                doseMin = current.doseMin.toBigDecimalOrNull(),
+                doseMax = current.doseMax.toBigDecimalOrNull(),
+                schemeOrder = base?.defaultScheme?.schemeOrder ?: 0,
+            )
+        val editedPreset =
+            ConcentrationPreset(
+                id = presetId,
+                drugId = id,
+                mode = base?.defaultPreset?.mode ?: ConcentrationMode.MASS_VOLUME,
+                amount = current.mass.toBigDecimalOrNull(),
+                amountUnit = current.massUnit,
+                volumeMl = current.volume.toBigDecimalOrNull(),
+                isDefault = true,
+            )
+        // Встроенный препарат правится на месте: остальные схемы и пресеты сохраняются.
+        val schemes =
+            if (keptBuiltIn) {
+                base!!.schemes.map { if (it.id == schemeId) editedScheme else it }
+            } else {
+                listOf(editedScheme)
+            }
+        val presets =
+            if (keptBuiltIn) {
+                base!!.presets.map { if (it.id == presetId) editedPreset else it }
+            } else {
+                listOf(editedPreset)
+            }
         val drug =
             Drug(
                 id = id,
@@ -95,40 +133,17 @@ class EditorViewModel(
                 drugClass = base?.drugClass ?: DrugClass.OTHER,
                 highAlert = base?.highAlert ?: false,
                 route = base?.route ?: "",
-                isBuiltIn = false,
-                derivedFromId = if (isCopyOfBuiltIn) base.id else base?.derivedFromId,
-                verification = Verification.USER,
+                isBuiltIn = keptBuiltIn,
+                derivedFromId = base?.derivedFromId,
+                verification = base?.verification ?: Verification.USER,
                 notes = base?.notes,
                 incompatibilities = base?.incompatibilities,
-                revision = if (isNewOrCopy) 1 else base.revision + 1,
+                revision = (base?.revision ?: 0) + 1,
                 catalogVersion = base?.catalogVersion ?: 0,
                 updatedAt = System.currentTimeMillis(),
                 defaultSchemeId = schemeId,
-                schemes =
-                    listOf(
-                        DoseScheme(
-                            id = schemeId,
-                            drugId = id,
-                            amountUnit = current.unit,
-                            perKg = current.perKg,
-                            perTime = current.timeBase,
-                            doseMin = current.doseMin.toBigDecimalOrNull(),
-                            doseMax = current.doseMax.toBigDecimalOrNull(),
-                            schemeOrder = 0,
-                        ),
-                    ),
-                presets =
-                    listOf(
-                        ConcentrationPreset(
-                            id = presetId,
-                            drugId = id,
-                            mode = ConcentrationMode.MASS_VOLUME,
-                            amount = current.mass.toBigDecimalOrNull(),
-                            amountUnit = current.massUnit,
-                            volumeMl = current.volume.toBigDecimalOrNull(),
-                            isDefault = true,
-                        ),
-                    ),
+                schemes = schemes,
+                presets = presets,
             )
         viewModelScope.launch {
             repository.save(drug)
@@ -175,6 +190,7 @@ class EditorViewModel(
             existingDrugs.any {
                 it.id != current.id &&
                     !it.isBuiltIn &&
+                    it.derivedFromId != current.id &&
                     it.nameRu.trim().equals(name, ignoreCase = true)
             }
         }

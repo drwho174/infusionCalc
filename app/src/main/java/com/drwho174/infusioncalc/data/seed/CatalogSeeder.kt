@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Досевает недостающие встроенные препараты и обновляет устаревшие (по [CatalogSeed.CATALOG_VERSION]),
- * не трогая пользовательские карточки. Встроенный препарат, отредактированный пользователем,
- * сохранён копией с другим id, поэтому исходный id остаётся свободным для сида.
+ * не трогая отредактированные пользователем ([Drug.revision] > 1). Правка встроенного
+ * сохраняется на месте, поэтому отдельной копии в списке не появляется.
  */
 class CatalogSeeder(
     private val repository: DrugRepository,
@@ -20,7 +20,8 @@ class CatalogSeeder(
                 .associateBy { it.id }
         CatalogSeed.drugs().forEach { seed ->
             val current = existingBuiltIns[seed.id]
-            if (current == null || current.catalogVersion < seed.catalogVersion) {
+            val editedByUser = current != null && current.revision > 1
+            if (current == null || (!editedByUser && current.catalogVersion < seed.catalogVersion)) {
                 repository.save(seed)
             }
         }

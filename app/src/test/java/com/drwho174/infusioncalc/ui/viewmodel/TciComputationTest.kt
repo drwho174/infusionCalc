@@ -86,15 +86,10 @@ class TciComputationTest {
     }
 
     @Test
-    fun `target warning follows the active phase`() {
-        // Cp 7 в индукции (диапазон 4–8) — без предупреждения
-        val induction = buildTciState(marshForm("7"))
-        assertNull(induction.blocking)
-        assertTrue(TciWarning.TARGET_OUT_OF_RANGE !in induction.warnings)
-        // Cp 7 в поддержании (диапазон ~3–6) — с предупреждением
-        val maintenance = buildTciState(marshForm("7").copy(inductionDone = true))
-        assertNull(maintenance.blocking)
-        assertTrue(TciWarning.TARGET_OUT_OF_RANGE in maintenance.warnings)
+    fun `target inside the combined range does not warn`() {
+        val state = buildTciState(marshForm("7"))
+        assertNull(state.blocking)
+        assertTrue(TciWarning.TARGET_OUT_OF_RANGE !in state.warnings)
     }
 
     @Test

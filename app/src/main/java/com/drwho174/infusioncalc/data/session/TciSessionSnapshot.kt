@@ -19,17 +19,20 @@ data class TciSessionSnapshot(
     val sex: String,
     val targetText: String,
     val wakeThresholdText: String,
-    val inductionDone: Boolean,
-    val maintenanceDone: Boolean,
-    val emergenceDone: Boolean,
     val status: String,
     val accumulatedSeconds: Int,
     val runningSinceEpochMs: Long?,
     val manualFromSeconds: Int?,
     val manualRateMlPerHour: String?,
     val confirmedOffsets: List<Int>,
+    /** Начало действующего плана (после смены цели или возврата из ручного режима). */
+    val planStartSeconds: Int = 0,
+    val planStartA1: String? = null,
+    val planStartA2: String? = null,
+    val planStartA3: String? = null,
+    val planStartCe: String? = null,
 ) {
     companion object {
-        const val CURRENT_VERSION = 1
+        const val CURRENT_VERSION = 2
     }
 }
