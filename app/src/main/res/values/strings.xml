@@ -158,9 +158,6 @@
     <string name="tci_range_hint_ce">Induction 2.5–4 · maintenance 2.5–4 mcg/mL</string>
     <string name="tci_bolus">Bolus</string>
     <string name="tci_bolus_time">in %1$s</string>
-    <string name="tci_maintenance">Maintenance</string>
-    <string name="tci_maintenance_start">start</string>
-    <string name="tci_maintenance_steady">steady</string>
     <string name="tci_ml">mL</string>
     <string name="tci_ml_h">mL/h</string>
     <string name="tci_rate_table">Rate schedule (every 5 min)</string>

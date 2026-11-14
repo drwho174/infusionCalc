@@ -158,9 +158,6 @@
     <string name="tci_range_hint_ce">Индукция 2.5–4 · поддержание 2.5–4 мкг/мл</string>
     <string name="tci_bolus">Болюс</string>
     <string name="tci_bolus_time">за %1$s</string>
-    <string name="tci_maintenance">Поддержание</string>
-    <string name="tci_maintenance_start">старт</string>
-    <string name="tci_maintenance_steady">установившаяся</string>
     <string name="tci_ml">мл</string>
     <string name="tci_ml_h">мл/ч</string>
     <string name="tci_rate_table">Таблица скоростей (каждые 5 мин)</string>

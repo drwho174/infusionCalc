@@ -255,6 +255,8 @@ fun TciScreen(
 
             if (computed != null) {
                 Spacer(Modifier.height(12.dp))
+                BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
+                Spacer(Modifier.height(12.dp))
                 PlotSection(
                     computed = computed,
                     live = live,
@@ -262,8 +264,6 @@ fun TciScreen(
                     onManualRate = viewModel::setManualRate,
                     onReturnToAuto = viewModel::returnToAutomatic,
                 )
-                Spacer(Modifier.height(12.dp))
-                BolusSection(computed = computed, currentOffset = live?.stepOffsetSeconds)
                 Spacer(Modifier.height(12.dp))
                 SessionSection(
                     state = state,
@@ -885,7 +885,7 @@ private fun WarningCard(
     }
 }
 
-// ---------------------------------------------------------------------- болюс/поддержание
+// ---------------------------------------------------------------------- болюс и таблица скоростей
 
 @Suppress("LongMethod")
 @Composable
@@ -918,42 +918,6 @@ private fun BolusSection(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.tci_maintenance), style = MaterialTheme.typography.labelLarge)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text =
-                    stringResource(R.string.tci_maintenance_start) +
-                        " " +
-                        computed.maintenanceStartDisplay +
-                        " " +
-                        stringResource(R.string.tci_ml_h),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text =
-                    stringResource(R.string.tci_maintenance_steady) +
-                        " " +
-                        computed.maintenanceSteadyDisplay +
-                        " " +
-                        stringResource(R.string.tci_ml_h),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-        if (computed.bmiDisplay != null) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "BMI " + computed.bmiDisplay,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (computed.lbmDisplay != null) {
-            Text(
-                "LBM " + computed.lbmDisplay + " " + stringResource(R.string.tci_kg),
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = { rateTableExpanded = !rateTableExpanded }) {
