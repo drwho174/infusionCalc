@@ -9,6 +9,7 @@ import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -17,7 +18,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -40,7 +40,7 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `editing a built-in drug saves a copy in mine`() =
+    fun `editing a built-in drug updates it in place without a duplicate`() =
         runTest(dispatcher) {
             val repository = FakeDrugRepository(listOf(builtIn()))
             val viewModel = EditorViewModel("norepinephrine", repository)
@@ -51,16 +51,32 @@ class EditorViewModelTest {
             viewModel.save { savedId = it }
             advanceUntilIdle()
 
-            assertNotNull(savedId)
-            assertNotEquals("norepinephrine", savedId)
+            assertEquals("norepinephrine", savedId)
+            val drugs = repository.observeDrugs().first()
+            assertEquals("editing must not add a second row", 1, drugs.size)
+            val updated = drugs.single()
+            assertTrue(updated.isBuiltIn)
+            assertNull(updated.derivedFromId)
+            assertEquals(2, updated.revision)
+        }
 
-            val copy = repository.getDrug(savedId!!)
-            assertNotNull(copy)
-            assertFalse(copy!!.isBuiltIn)
-            assertEquals("norepinephrine", copy.derivedFromId)
+    @Test
+    fun `editing the same built-in twice keeps a single row`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository(listOf(builtIn()))
 
-            val original = repository.getDrug("norepinephrine")
-            assertTrue(original!!.isBuiltIn)
+            EditorViewModel("norepinephrine", repository).apply {
+                advanceUntilIdle()
+                save { }
+            }
+            advanceUntilIdle()
+            EditorViewModel("norepinephrine", repository).apply {
+                advanceUntilIdle()
+                save { }
+            }
+            advanceUntilIdle()
+
+            assertEquals(1, repository.observeDrugs().first().size)
         }
 
     @Test

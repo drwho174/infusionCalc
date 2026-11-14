@@ -49,6 +49,7 @@ class CatalogListRoborazziTest {
                 CatalogScreen(
                     viewModel = viewModel,
                     onOpenDrug = {},
+                    onOpenTci = {},
                     onAddDrug = {},
                     onOpenSettings = {},
                 )

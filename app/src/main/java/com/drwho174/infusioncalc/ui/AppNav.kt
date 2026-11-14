@@ -21,6 +21,8 @@ import com.drwho174.infusioncalc.ui.navigation.DisclaimerKey
 import com.drwho174.infusioncalc.ui.navigation.DrugCardKey
 import com.drwho174.infusioncalc.ui.navigation.EditorKey
 import com.drwho174.infusioncalc.ui.navigation.SettingsKey
+import com.drwho174.infusioncalc.ui.navigation.TciKey
+import com.drwho174.infusioncalc.ui.navigation.TciModelsKey
 import com.drwho174.infusioncalc.ui.navigation.WeightKey
 import com.drwho174.infusioncalc.ui.navigation.navSerializersModule
 import com.drwho174.infusioncalc.ui.screens.CalculatorScreen
@@ -29,6 +31,8 @@ import com.drwho174.infusioncalc.ui.screens.DisclaimerScreen
 import com.drwho174.infusioncalc.ui.screens.DrugCardScreen
 import com.drwho174.infusioncalc.ui.screens.EditorScreen
 import com.drwho174.infusioncalc.ui.screens.SettingsScreen
+import com.drwho174.infusioncalc.ui.screens.TciModelsScreen
+import com.drwho174.infusioncalc.ui.screens.TciScreen
 import com.drwho174.infusioncalc.ui.screens.WeightScreen
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -86,6 +90,7 @@ fun AppNav(
                     CatalogScreen(
                         viewModel = koinViewModel(),
                         onOpenDrug = { drugId -> backStack.add(CalculatorKey(drugId)) },
+                        onOpenTci = { backStack.add(TciKey) },
                         onAddDrug = { backStack.add(EditorKey()) },
                         onOpenSettings = { backStack.add(SettingsKey) },
                     )
@@ -132,6 +137,16 @@ fun AppNav(
                         viewModel = koinViewModel(),
                         onBack = { backStack.removeLastOrNull() },
                     )
+                }
+                entry<TciKey> {
+                    TciScreen(
+                        viewModel = koinViewModel(),
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenHelp = { backStack.add(TciModelsKey) },
+                    )
+                }
+                entry<TciModelsKey> {
+                    TciModelsScreen(onBack = { backStack.removeLastOrNull() })
                 }
             },
     )

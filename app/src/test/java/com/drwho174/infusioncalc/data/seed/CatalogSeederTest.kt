@@ -65,6 +65,30 @@ class CatalogSeederTest {
         }
 
     @Test
+    fun `user edit of a built-in is preserved and does not duplicate`() =
+        runBlocking {
+            val seeder = CatalogSeeder(repository)
+            seeder.seedMissing()
+            val before = repository.observeDrugs().first()
+            val target = before.first { it.id == "norepinephrine" }
+            repository.save(
+                target.copy(
+                    nameRu = "Норадреналин (изм.)",
+                    revision = target.revision + 1,
+                    catalogVersion = 0,
+                ),
+            )
+
+            seeder.seedMissing()
+
+            val after = repository.observeDrugs().first()
+            assertEquals(before.size, after.size)
+            val reloaded = after.first { it.id == "norepinephrine" }
+            assertEquals("Норадреналин (изм.)", reloaded.nameRu)
+            assertEquals(2, reloaded.revision)
+        }
+
+    @Test
     fun `second seed run does not duplicate rows`() =
         runBlocking {
             val seeder = CatalogSeeder(repository)

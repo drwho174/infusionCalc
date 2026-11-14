@@ -22,6 +22,7 @@ class NavigationKeysTest {
                 EditorKey(null),
                 EditorKey("norepinephrine"),
                 SettingsKey,
+                TciKey,
             )
 
         keys.forEach { key ->

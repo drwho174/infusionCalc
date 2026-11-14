@@ -8,15 +8,20 @@ import com.drwho174.infusioncalc.data.local.AppDatabase
 import com.drwho174.infusioncalc.data.local.DrugDao
 import com.drwho174.infusioncalc.data.local.FolderDao
 import com.drwho174.infusioncalc.data.seed.CatalogSeeder
+import com.drwho174.infusioncalc.data.session.DataStoreTciSessionStore
+import com.drwho174.infusioncalc.data.session.TciSessionStore
 import com.drwho174.infusioncalc.data.settings.SettingsRepository
 import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
 import com.drwho174.infusioncalc.domain.repository.FolderRepository
+import com.drwho174.infusioncalc.notif.TciNotificationController
+import com.drwho174.infusioncalc.notif.TciNotifier
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.DrugCardViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.EditorViewModel
+import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.WeightViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -37,7 +42,9 @@ val appModule =
         single<DrugRepository> { RoomDrugRepository(get()) }
         single<FolderRepository> { RoomFolderRepository(get()) }
         single { SettingsRepository(androidContext()) }
+        single<TciSessionStore> { DataStoreTciSessionStore(androidContext()) }
         single { WeightStore() }
+        single<TciNotifier> { TciNotificationController(androidContext()) }
         single { CatalogSeeder(get()) }
 
         viewModel { AppViewModel(get()) }
@@ -48,4 +55,5 @@ val appModule =
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
+        viewModel { TciViewModel(get(), get(), get()) }
     }
