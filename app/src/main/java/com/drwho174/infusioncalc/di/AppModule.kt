@@ -52,5 +52,5 @@ val appModule =
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
-        viewModel { TciViewModel(get()) }
+        viewModel { TciViewModel(get(), get()) }
     }

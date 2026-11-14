@@ -3,6 +3,7 @@ package com.drwho174.infusioncalc.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drwho174.infusioncalc.data.session.TciSessionStore
+import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.tci.PumpPlan
 import com.drwho174.infusioncalc.tci.Sex
 import com.drwho174.infusioncalc.tci.SimStep
@@ -29,9 +30,20 @@ import java.math.BigDecimal
 @Suppress("TooManyFunctions", "ReturnCount")
 class TciViewModel(
     private val store: TciSessionStore,
+    private val weightStore: WeightStore = WeightStore(),
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
-    private val _state = MutableStateFlow(buildTciState(TciForm()))
+    private val _state =
+        MutableStateFlow(
+            buildTciState(
+                TciForm(
+                    weightText =
+                        weightStore.weight.value
+                            ?.toPlainString()
+                            .orEmpty(),
+                ),
+            ),
+        )
     val state: StateFlow<TciUiState> = _state.asStateFlow()
 
     private var session = TciSession()
@@ -133,7 +145,10 @@ class TciViewModel(
         planStartState = null
         lastSavedBucket = -1
         _state.value =
-            buildTciState(_state.value.form).copy(disclaimerHidden = _state.value.disclaimerHidden)
+            buildTciState(_state.value.form).copy(
+                disclaimerHidden = _state.value.disclaimerHidden,
+                preferencesLoaded = _state.value.preferencesLoaded,
+            )
         viewModelScope.launch { runCatching { store.clear() } }
     }
 
@@ -191,7 +206,10 @@ class TciViewModel(
             if (session.isActive) {
                 base.copy(form = form)
             } else {
-                buildTciState(form).copy(disclaimerHidden = base.disclaimerHidden)
+                buildTciState(form).copy(
+                    disclaimerHidden = base.disclaimerHidden,
+                    preferencesLoaded = base.preferencesLoaded,
+                )
             }
         text.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }?.let { value ->
             viewModelScope.launch { runCatching { store.saveBolusRateMlPerHour(value) } }
@@ -215,7 +233,11 @@ class TciViewModel(
     private fun update(transform: (TciForm) -> TciForm) {
         if (restoring || session.isActive) return
         val base = buildTciState(transform(_state.value.form))
-        _state.value = base.copy(disclaimerHidden = _state.value.disclaimerHidden)
+        _state.value =
+            base.copy(
+                disclaimerHidden = _state.value.disclaimerHidden,
+                preferencesLoaded = _state.value.preferencesLoaded,
+            )
     }
 
     fun onWeightChange(raw: String) = update { it.copy(weightText = normalizeDecimalInput(raw)) }
@@ -271,20 +293,35 @@ class TciViewModel(
             val form =
                 TciForm(
                     bolusRateText = (storedBolusRate ?: DEFAULT_BOLUS_RATE).toPlainString(),
+                    weightText =
+                        weightStore.weight.value
+                            ?.toPlainString()
+                            .orEmpty(),
                 )
             val base = buildTciState(form)
             activePlan = base.computed?.plan
             activeCurve = activePlan?.predicted
-            _state.value = base.copy(disclaimerHidden = hidden)
+            _state.value = base.copy(disclaimerHidden = hidden, preferencesLoaded = true)
             return
         }
 
-        val form = snapshot.toForm()
+        val restoredForm = snapshot.toForm()
+        val form =
+            if (restoredForm.weightText.isBlank()) {
+                restoredForm.copy(
+                    weightText =
+                        weightStore.weight.value
+                            ?.toPlainString()
+                            .orEmpty(),
+                )
+            } else {
+                restoredForm
+            }
         val base = buildTciState(form)
         val computed = base.computed
         if (computed == null) {
             session = TciSession()
-            _state.value = base.copy(disclaimerHidden = hidden)
+            _state.value = base.copy(disclaimerHidden = hidden, preferencesLoaded = true)
             return
         }
         session = snapshot.toSession()
@@ -322,6 +359,7 @@ class TciViewModel(
                 session = session,
                 live = buildLive(activePlan!!, form, session, now, manualCurve, activeCurve, pauseCurve),
                 disclaimerHidden = hidden,
+                preferencesLoaded = true,
             )
         lastSavedBucket = session.elapsedSeconds(now) / SAVE_INTERVAL_SECONDS
     }
@@ -354,6 +392,7 @@ class TciViewModel(
                 session = session,
                 live = buildLive(plan, form, session, clock(), null, activeCurve, pauseCurve),
                 disclaimerHidden = _state.value.disclaimerHidden,
+                preferencesLoaded = _state.value.preferencesLoaded,
             )
         persist()
     }

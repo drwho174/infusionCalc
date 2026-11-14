@@ -2,6 +2,7 @@ package com.drwho174.infusioncalc.ui.viewmodel
 
 import com.drwho174.infusioncalc.data.session.TciSessionSnapshot
 import com.drwho174.infusioncalc.data.session.TciSessionStore
+import com.drwho174.infusioncalc.domain.WeightStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -66,10 +67,29 @@ class TciViewModelTest {
         store: FakeStore = FakeStore(),
         clock: () -> Long,
     ): TciViewModel =
-        TciViewModel(store, clock).apply {
+        TciViewModel(store, clock = clock).apply {
             onWeightChange("70")
             onTargetChange("4")
         }
+
+    @Test
+    fun `weight is prefilled from the shared weight store`() {
+        val weightStore = WeightStore().apply { set(BigDecimal("82")) }
+
+        val viewModel = TciViewModel(FakeStore(), weightStore, clock = { 0L })
+
+        assertEquals("82", viewModel.state.value.form.weightText)
+    }
+
+    @Test
+    fun `disclaimer is not shown before preferences are loaded`() {
+        val store = FakeStore().apply { disclaimerHidden = true }
+
+        val viewModel = TciViewModel(store, clock = { 0L })
+
+        assertTrue(viewModel.state.value.preferencesLoaded)
+        assertTrue(viewModel.state.value.disclaimerHidden)
+    }
 
     @Test
     fun `session keeps running while the screen is closed`() {

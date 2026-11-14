@@ -335,7 +335,7 @@ fun TciScreen(
         )
     }
 
-    if (!state.disclaimerHidden && !dismissedDisclaimer) {
+    if (state.preferencesLoaded && !state.disclaimerHidden && !dismissedDisclaimer) {
         TciDisclaimerDialog(
             onDismiss = { neverShow ->
                 dismissedDisclaimer = true

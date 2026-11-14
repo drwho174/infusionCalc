@@ -102,6 +102,8 @@ data class TciUiState(
     val live: TciLive? = null,
     /** Дисклеймер скрыт пользователем («больше не показывать»). */
     val disclaimerHidden: Boolean = false,
+    /** Настройки TCI прочитаны из DataStore: до этого дисклеймер не показываем. */
+    val preferencesLoaded: Boolean = false,
 ) {
     val isReady: Boolean get() = computed != null && blocking == null
 
