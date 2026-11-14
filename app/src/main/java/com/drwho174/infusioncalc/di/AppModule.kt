@@ -14,6 +14,8 @@ import com.drwho174.infusioncalc.data.settings.SettingsRepository
 import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
 import com.drwho174.infusioncalc.domain.repository.FolderRepository
+import com.drwho174.infusioncalc.notif.TciNotificationController
+import com.drwho174.infusioncalc.notif.TciNotifier
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
@@ -42,6 +44,7 @@ val appModule =
         single { SettingsRepository(androidContext()) }
         single<TciSessionStore> { DataStoreTciSessionStore(androidContext()) }
         single { WeightStore() }
+        single<TciNotifier> { TciNotificationController(androidContext()) }
         single { CatalogSeeder(get()) }
 
         viewModel { AppViewModel(get()) }
@@ -52,5 +55,5 @@ val appModule =
         viewModel { (drugId: String) ->
             EditorViewModel(drugId.takeIf { it.isNotBlank() }, get())
         }
-        viewModel { TciViewModel(get(), get()) }
+        viewModel { TciViewModel(get(), get(), get()) }
     }

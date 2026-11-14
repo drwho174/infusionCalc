@@ -58,7 +58,7 @@ class TciLiveTest {
         val overdue = buildLive(plan, form, session, 120_000, null)!!
         assertTrue(overdue.overdue)
 
-        val confirmed = session.confirm(overdue.stepOffsetSeconds!!)
+        val confirmed = session.confirm(overdue.stepOffsetSeconds!!, 120_000)
         val live = buildLive(plan, form, confirmed, 120_000, null)!!
         assertFalse(live.overdue)
         assertTrue(live.confirmed)

@@ -174,7 +174,7 @@ private fun planAdvice(
 ): Advice {
     val current = plan.steps.lastOrNull { it.offsetSeconds <= elapsed } ?: plan.steps.first()
     val next = plan.steps.firstOrNull { it.offsetSeconds > elapsed }
-    val confirmed = current.offsetSeconds in session.confirmedOffsets
+    val confirmed = session.confirmedAt.containsKey(current.offsetSeconds)
     return Advice(
         phase = if (current.bolus) TciPhase.BOLUS else TciPhase.MAINTENANCE,
         rate = current.rateMlPerHour,

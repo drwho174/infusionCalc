@@ -32,7 +32,7 @@ internal fun TciForm.toSnapshot(
         pausedAtEpochMs = session.pausedAtEpochMs,
         manualFromSeconds = session.manualFromSeconds,
         manualRateMlPerHour = session.manualRateMlPerHour?.toPlainString(),
-        confirmedOffsets = session.confirmedOffsets.sorted(),
+        confirmedAt = session.confirmedAt,
         planStartSeconds = planStartSeconds,
         planStartA1 = planStartState?.a1Mg?.toPlainString(),
         planStartA2 = planStartState?.a2Mg?.toPlainString(),
@@ -64,7 +64,7 @@ internal fun TciSessionSnapshot.toSession(): TciSession =
         pausedAtEpochMs = pausedAtEpochMs,
         manualFromSeconds = manualFromSeconds,
         manualRateMlPerHour = manualRateMlPerHour?.toBigDecimalOrNull(),
-        confirmedOffsets = confirmedOffsets.toSet(),
+        confirmedAt = confirmedAt,
     )
 
 /** Состояние, от которого пересчитывается действующий план; null для плана с нуля. */

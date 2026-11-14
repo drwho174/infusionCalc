@@ -52,7 +52,7 @@ class TciSessionTest {
             TciSession()
                 .start(0L)
                 .setManual(BigDecimal("60"), 60_000L)
-                .confirm(0)
+                .confirm(0, 5_000)
                 .stop()
         assertFalse(session.isActive)
         assertFalse(session.manual)

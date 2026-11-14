@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drwho174.infusioncalc.data.session.TciSessionStore
 import com.drwho174.infusioncalc.domain.WeightStore
+import com.drwho174.infusioncalc.notif.NoopTciNotifier
+import com.drwho174.infusioncalc.notif.TciNotificationModel
+import com.drwho174.infusioncalc.notif.TciNotifier
 import com.drwho174.infusioncalc.tci.PumpPlan
 import com.drwho174.infusioncalc.tci.Sex
 import com.drwho174.infusioncalc.tci.SimStep
@@ -31,6 +34,7 @@ import java.math.BigDecimal
 class TciViewModel(
     private val store: TciSessionStore,
     private val weightStore: WeightStore = WeightStore(),
+    private val notifier: TciNotifier = NoopTciNotifier,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : ViewModel() {
     private val _state =
@@ -95,6 +99,7 @@ class TciViewModel(
                 live = buildLive(computed.plan, _state.value.form, session, now, null, activeCurve),
                 disclaimerHidden = _state.value.disclaimerHidden,
             )
+        syncNotifier()
         lastSavedBucket = 0
         persist()
     }
@@ -108,6 +113,7 @@ class TciViewModel(
         session = session.pause(now)
         pauseCurve = state?.let { simulateHold(current.form, it, elapsed) }
         publish()
+        syncNotifier()
         persist()
     }
 
@@ -131,6 +137,7 @@ class TciViewModel(
         } else {
             publish()
         }
+        syncNotifier()
         persist()
     }
 
@@ -149,14 +156,29 @@ class TciViewModel(
                 disclaimerHidden = _state.value.disclaimerHidden,
                 preferencesLoaded = _state.value.preferencesLoaded,
             )
+        notifier.stop()
         viewModelScope.launch { runCatching { store.clear() } }
     }
 
-    /** Отметка «уставка выставлена на насосе» (D-LIVE-3). */
+    /**
+     * Отметка «уставка выставлена на насосе» (D-LIVE-3). Фактическое время подтверждения
+     * сдвигает модель: если ступень выставили позже, насос дольше держал прежнюю скорость,
+     * и кривая пересчитывается по фактическому расписанию.
+     */
     fun confirmCurrentRate() {
-        val offset = _state.value.live?.stepOffsetSeconds ?: return
-        session = session.confirm(offset)
+        val live = _state.value.live ?: return
+        val offset = live.stepOffsetSeconds ?: return
+        val now = clock()
+        val elapsed = session.elapsedSeconds(now)
+        session = session.confirm(offset, elapsed)
+        val plan = activePlan
+        if (plan != null && !session.manual) {
+            val horizon = (elapsed + TciForm.HORIZON_SECONDS).coerceAtMost(TciSession.MAX_SESSION_SECONDS)
+            activeCurve =
+                simulateSchedule(_state.value.form, plan, session.confirmedAt, horizon) ?: activeCurve
+        }
         publish()
+        syncNotifier()
         persist()
     }
 
@@ -170,6 +192,7 @@ class TciViewModel(
         session = session.setManual(rate, clock())
         manualCurve = simulateManual(current.form, state, elapsed, rate)
         publish()
+        syncNotifier()
         persist()
     }
 
@@ -245,11 +268,17 @@ class TciViewModel(
                         preferencesLoaded = base.preferencesLoaded,
                     )
         }
+        syncNotifier()
         viewModelScope.launch {
             bolusText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }?.let { store.saveBolusRateMlPerHour(it) }
             store.saveTableStepMinutes(form.tableStepMinutes)
             store.saveWarningLeadMinutes(form.warningLeadMinutes)
         }
+    }
+
+    /** Повторная синхронизация уведомления (например, после выдачи разрешения). */
+    fun refreshNotifications() {
+        if (session.isActive) syncNotifier()
     }
 
     /** «Больше не показывать» для дисклеймера. */
@@ -318,7 +347,7 @@ class TciViewModel(
             )
     }
 
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     private suspend fun restore() {
         val snapshot = runCatching { store.load() }.getOrNull()
         val hidden = runCatching { store.isDisclaimerHidden() }.getOrDefault(false)
@@ -384,6 +413,14 @@ class TciViewModel(
             }
         activePlan = restoredPlan ?: computed.plan
         activeCurve = activePlan?.predicted
+        val restoredPlanRef = activePlan
+        if (!session.manual && session.confirmedAt.isNotEmpty() && restoredPlanRef != null) {
+            val horizon =
+                (session.elapsedSeconds(clock()) + TciForm.HORIZON_SECONDS)
+                    .coerceAtMost(TciSession.MAX_SESSION_SECONDS)
+            activeCurve =
+                simulateSchedule(form, restoredPlanRef, session.confirmedAt, horizon) ?: activeCurve
+        }
         activeTarget = form.targetText.toBigDecimalOrNull()
         val pausedAt = session.pausedAtEpochMs
         pauseCurve =
@@ -410,6 +447,7 @@ class TciViewModel(
                 disclaimerHidden = hidden,
                 preferencesLoaded = true,
             )
+        syncNotifier()
         lastSavedBucket = session.elapsedSeconds(now) / SAVE_INTERVAL_SECONDS
     }
 
@@ -429,7 +467,7 @@ class TciViewModel(
         val computed = base.computed ?: return
         val plan = replanFromState(form, state, elapsedSeconds) ?: return
 
-        session = session.clearManual()
+        session = session.clearManual().copy(confirmedAt = emptyMap())
         manualCurve = null
         activePlan = plan
         activeCurve = mergeCurve(live?.curve ?: computed.plan.predicted, plan.predicted, elapsedSeconds)
@@ -444,6 +482,7 @@ class TciViewModel(
                 disclaimerHidden = _state.value.disclaimerHidden,
                 preferencesLoaded = _state.value.preferencesLoaded,
             )
+        syncNotifier()
         persist()
     }
 
@@ -499,6 +538,64 @@ class TciViewModel(
         }.getOrNull()
     }
 
+    /**
+     * Пересчитывает кривую по фактическому расписанию: ступень применяется в момент
+     * подтверждения, а если его не было — по плановому времени. Так опоздание
+     * подтверждения сдвигает модель, а не игнорируется.
+     */
+    @Suppress("CyclomaticComplexMethod")
+    private fun simulateSchedule(
+        form: TciForm,
+        plan: PumpPlan,
+        confirmedAt: Map<Int, Int>,
+        horizonSeconds: Int,
+    ): List<SimStep>? {
+        val params = parametersOf(form) ?: return null
+        val changes = ArrayList<Pair<Int, BigDecimal>>()
+        changes.add(0 to BigDecimal.ZERO)
+        var last = 0
+        for (step in plan.steps) {
+            val at = (confirmedAt[step.offsetSeconds] ?: step.offsetSeconds).coerceAtLeast(last)
+            if (at >= horizonSeconds) break
+            last = at
+            if (changes.last().first == at) {
+                changes[changes.lastIndex] = at to step.rateMlPerHour
+            } else {
+                changes.add(at to step.rateMlPerHour)
+            }
+        }
+
+        var state = TciState(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
+        var t = 0
+        var index = 0
+        val curve = ArrayList<SimStep>()
+        while (t < horizonSeconds) {
+            while (index + 1 < changes.size && changes[index + 1].first <= t) index++
+            val rate = changes[index].second
+            val end = minOf(changes.getOrNull(index + 1)?.first ?: horizonSeconds, horizonSeconds)
+            if (end <= t) {
+                index++
+                continue
+            }
+            val segment =
+                TciEngine.simulateConstantRate(
+                    params = params,
+                    fromState = state,
+                    fromOffsetSeconds = t,
+                    rateMlPerHour = rate,
+                    concentrationMgPerMl = form.concentrationMgPerMl,
+                    horizonSeconds = end - t,
+                )
+            for (step in segment) {
+                if (curve.isEmpty() || step.timeSeconds > curve.last().timeSeconds) curve.add(step)
+            }
+            state = segment.last().state
+            t = end
+            index++
+        }
+        return curve
+    }
+
     private fun buildManualCurveFrom(
         curve: List<SimStep>?,
         form: TciForm,
@@ -534,6 +631,25 @@ class TciViewModel(
             ageYears = form.ageText.trim().toIntOrNull(),
             sex = form.sex,
             horizonSeconds = TciForm.HORIZON_SECONDS,
+        )
+    }
+
+    /** Передаёт сервису уведомления актуальную модель (часы и кривые живут в ней). */
+    private fun syncNotifier() {
+        if (!session.isActive) {
+            notifier.stop()
+            return
+        }
+        val plan = activePlan ?: return
+        notifier.update(
+            TciNotificationModel(
+                mode = _state.value.form.mode,
+                session = session,
+                plan = plan,
+                curve = activeCurve ?: plan.predicted,
+                pauseCurve = pauseCurve,
+                manualCurve = manualCurve,
+            ),
         )
     }
 

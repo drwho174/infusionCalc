@@ -2,6 +2,11 @@
 
 package com.drwho174.infusioncalc.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -38,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -62,6 +69,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -92,6 +100,8 @@ import java.math.BigDecimal
 
 /** Как часто экран перерисовывается, пока виден. */
 private const val TICK_INTERVAL_MS = 1_000L
+
+private const val SDK_POST_NOTIFICATIONS = 33
 
 /** Не чаще раза в 30 с — чтобы TalkBack не озвучивал каждую секунду. */
 private const val LIVE_ANNOUNCE_SECONDS = 30
@@ -125,6 +135,30 @@ fun TciScreen(
     val session = state.session
     val live = state.live
     val active = session.isActive
+    val context = LocalContext.current
+    val notificationPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) viewModel.refreshNotifications()
+        }
+    val requestStart: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= SDK_POST_NOTIFICATIONS &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        viewModel.start()
+    }
+
+    LaunchedEffect(session.isActive) {
+        if (session.isActive &&
+            Build.VERSION.SDK_INT >= SDK_POST_NOTIFICATIONS &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     var pendingModel by remember { mutableStateOf<TciModel?>(null) }
     var pendingMode by remember { mutableStateOf<TargetMode?>(null) }
@@ -264,7 +298,7 @@ fun TciScreen(
                 Spacer(Modifier.height(12.dp))
                 SessionSection(
                     state = state,
-                    onStart = viewModel::start,
+                    onStart = requestStart,
                     onPause = viewModel::pause,
                     onResume = viewModel::resume,
                     onStop = viewModel::stop,

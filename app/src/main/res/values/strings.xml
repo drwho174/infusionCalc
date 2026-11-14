@@ -229,7 +229,16 @@
     <string name="tci_minutes">min</string>
     <string name="tci_range_1_15">1–15 min</string>
     <string name="tci_pump_warning_soon">Next change in %1$s — get ready</string>
+    <string name="tci_notif_channel">TCI infusion</string>
+    <string name="tci_notif_channel_desc">Current predicted concentration and time to the next pump rate change</string>
+    <string name="tci_notif_title_cp">Cp %1$s mcg/mL</string>
+    <string name="tci_notif_title_ce">Ce %1$s mcg/mL</string>
+    <string name="tci_notif_next">Next change in %1$s → %2$s mL/h</string>
+    <string name="tci_notif_due">Time to set %1$s mL/h</string>
+    <string name="tci_notif_paused">Paused — pump rate 0 mL/h</string>
+    <string name="tci_notif_steady">Steady rate %1$s mL/h</string>
 </resources>
+
 
 
 

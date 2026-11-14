@@ -27,7 +27,8 @@ data class TciSessionSnapshot(
     val pausedAtEpochMs: Long? = null,
     val manualFromSeconds: Int?,
     val manualRateMlPerHour: String?,
-    val confirmedOffsets: List<Int>,
+    /** offset плана → фактическое время подтверждения (с). */
+    val confirmedAt: Map<Int, Int> = emptyMap(),
     /** Начало действующего плана (после смены цели или возврата из ручного режима). */
     val planStartSeconds: Int = 0,
     val planStartA1: String? = null,

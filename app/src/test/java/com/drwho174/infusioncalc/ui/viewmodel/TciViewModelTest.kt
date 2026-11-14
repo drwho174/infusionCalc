@@ -3,6 +3,8 @@ package com.drwho174.infusioncalc.ui.viewmodel
 import com.drwho174.infusioncalc.data.session.TciSessionSnapshot
 import com.drwho174.infusioncalc.data.session.TciSessionStore
 import com.drwho174.infusioncalc.domain.WeightStore
+import com.drwho174.infusioncalc.notif.TciNotificationModel
+import com.drwho174.infusioncalc.notif.TciNotifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -77,6 +79,19 @@ class TciViewModelTest {
         }
     }
 
+    private class FakeNotifier : TciNotifier {
+        var updates = 0
+        var stopped = false
+
+        override fun update(model: TciNotificationModel) {
+            updates++
+        }
+
+        override fun stop() {
+            stopped = true
+        }
+    }
+
     private fun ready(
         store: FakeStore = FakeStore(),
         clock: () -> Long,
@@ -85,6 +100,45 @@ class TciViewModelTest {
             onWeightChange("70")
             onTargetChange("4")
         }
+
+    @Test
+    fun `notifier follows the session`() {
+        val notifier = FakeNotifier()
+        val viewModel = TciViewModel(FakeStore(), notifier = notifier, clock = { 0L })
+        viewModel.onWeightChange("70")
+        viewModel.onTargetChange("4")
+
+        viewModel.start()
+        assertTrue(notifier.updates > 0)
+
+        viewModel.stop()
+        assertTrue(notifier.stopped)
+    }
+
+    @Test
+    fun `late confirmation shifts the model curve`() {
+        var now = 0L
+        val viewModel = ready(clock = { now })
+        viewModel.start()
+        now = 950_000L
+        viewModel.refresh()
+        val before =
+            viewModel.state.value.live!!
+                .cpDisplay
+                .toBigDecimal()
+
+        viewModel.confirmCurrentRate()
+
+        val after =
+            viewModel.state.value.live!!
+                .cpDisplay
+                .toBigDecimal()
+        assertTrue("expected a shifted curve: $before -> $after", after > before)
+        assertTrue(
+            viewModel.state.value.session.confirmedAt
+                .isNotEmpty(),
+        )
+    }
 
     @Test
     fun `settings update bolus rate, table step and warning lead`() {
@@ -310,7 +364,7 @@ class TciViewModelTest {
             TciSession()
                 .start(1_000L)
                 .setManual(BigDecimal("60"), 5_000L)
-                .confirm(300)
+                .confirm(300, 300_000)
 
         val snapshot = form.toSnapshot(session)
 

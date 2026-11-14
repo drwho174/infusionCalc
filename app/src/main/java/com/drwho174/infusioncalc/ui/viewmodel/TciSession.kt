@@ -22,7 +22,8 @@ data class TciSession(
     val pausedAtEpochMs: Long? = null,
     val manualFromSeconds: Int? = null,
     val manualRateMlPerHour: BigDecimal? = null,
-    val confirmedOffsets: Set<Int> = emptySet(),
+    /** Время фактического подтверждения каждой ступени: offset плана → elapsed, с. */
+    val confirmedAt: Map<Int, Int> = emptyMap(),
 ) {
     val isActive: Boolean get() = status != TciSessionStatus.IDLE
 
@@ -86,7 +87,10 @@ data class TciSession(
     /** Возврат к автоматической программе. */
     fun clearManual(): TciSession = copy(manualFromSeconds = null, manualRateMlPerHour = null)
 
-    fun confirm(offsetSeconds: Int): TciSession = copy(confirmedOffsets = confirmedOffsets + offsetSeconds)
+    fun confirm(
+        offsetSeconds: Int,
+        atSeconds: Int,
+    ): TciSession = copy(confirmedAt = confirmedAt + (offsetSeconds to atSeconds))
 
     companion object {
         const val MAX_SESSION_SECONDS = 24 * 3600

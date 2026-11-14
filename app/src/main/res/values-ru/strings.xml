@@ -229,7 +229,16 @@
     <string name="tci_minutes">мин</string>
     <string name="tci_range_1_15">1–15 мин</string>
     <string name="tci_pump_warning_soon">Следующая коррекция через %1$s — приготовьтесь</string>
+    <string name="tci_notif_channel">Инфузия TCI</string>
+    <string name="tci_notif_channel_desc">Текущая прогнозная концентрация и время до следующей коррекции скорости</string>
+    <string name="tci_notif_title_cp">Cp %1$s мкг/мл</string>
+    <string name="tci_notif_title_ce">Ce %1$s мкг/мл</string>
+    <string name="tci_notif_next">Следующая коррекция через %1$s → %2$s мл/ч</string>
+    <string name="tci_notif_due">Пора выставить %1$s мл/ч</string>
+    <string name="tci_notif_paused">Пауза — скорость 0 мл/ч</string>
+    <string name="tci_notif_steady">Установившаяся скорость %1$s мл/ч</string>
 </resources>
+
 
 
 
