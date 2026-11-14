@@ -193,7 +193,7 @@ fun EditorScreen(
             state.presets.forEach { preset ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = preset.displayLabel(),
+                        text = preset.displayLabel().replace(" = ", "\n= "),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f),
                     )
@@ -204,7 +204,7 @@ fun EditorScreen(
                                 dialogOpen = true
                             },
                         ) {
-                            Text(stringResource(R.string.edit_concentration))
+                            Text(stringResource(R.string.edit))
                         }
                     }
                     if (state.presets.size > 1) {
