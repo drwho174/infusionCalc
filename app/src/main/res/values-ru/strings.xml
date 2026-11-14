@@ -222,7 +222,10 @@
     <string name="tci_target_change_hint">Цель можно менять во время инфузии — болюс пересчитается.</string>
     <string name="tci_confirm_reset_title">Подтверждение</string>
     <string name="tci_wake_countdown">Обратный отсчёт после паузы: инфузия остановлена</string>
+    <string name="tci_pump_phase_paused">Пауза</string>
+    <string name="tci_pump_paused">Пауза — скорость насоса 0 мл/ч, концентрации снижаются.</string>
 </resources>
+
 
 
 

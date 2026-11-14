@@ -112,35 +112,32 @@ class TciViewModelTest {
     }
 
     @Test
-    fun `pause freezes and resume continues`() {
+    fun `pause keeps the clock running with zero rate and decaying Cp`() {
         var now = 0L
         val viewModel = ready(clock = { now })
         viewModel.start()
         now = 5 * 60_000L
         viewModel.refresh()
-        assertEquals(
-            300,
+        val before =
             viewModel.state.value.live!!
-                .elapsedSeconds,
-        )
+                .cpDisplay
+                .toBigDecimal()
 
         viewModel.pause()
-        now = 10 * 60_000L
+        val paused = viewModel.state.value.live!!
+        assertTrue(paused.paused)
+        assertEquals(0, BigDecimal.ZERO.compareTo(paused.currentRateMlPerHour))
+
+        now = 6 * 60_000L
         viewModel.refresh()
-        assertEquals(
-            300,
-            viewModel.state.value.live!!
-                .elapsedSeconds,
-        )
+        val later = viewModel.state.value.live!!
+        assertEquals(360, later.elapsedSeconds)
+        assertTrue("Cp must decay while paused", later.cpDisplay.toBigDecimal() < before)
 
         viewModel.resume()
-        now = 11 * 60_000L
-        viewModel.refresh()
-        assertEquals(
-            360,
-            viewModel.state.value.live!!
-                .elapsedSeconds,
-        )
+        val resumed = viewModel.state.value.live!!
+        assertFalse(resumed.paused)
+        assertTrue(resumed.currentRateMlPerHour!! > BigDecimal.ZERO)
     }
 
     @Test

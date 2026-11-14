@@ -37,6 +37,9 @@ class TciViewModel(
     private var session = TciSession()
     private var manualCurve: List<SimStep>? = null
 
+    /** Кривая выведения от момента паузы (скорость 0). */
+    private var pauseCurve: List<SimStep>? = null
+
     /** Действующий план: с нуля либо пересчитанный от состояния на [planStartSeconds]. */
     private var activePlan: PumpPlan? = null
     private var activeCurve: List<SimStep>? = null
@@ -86,21 +89,43 @@ class TciViewModel(
 
     fun pause() {
         if (session.status != TciSessionStatus.RUNNING) return
-        session = session.pause(clock())
+        val now = clock()
+        val current = _state.value
+        val state = current.live?.state
+        val elapsed = session.elapsedSeconds(now)
+        session = session.pause(now)
+        pauseCurve = state?.let { simulateHold(current.form, it, elapsed) }
         publish()
         persist()
     }
 
     fun resume() {
         if (session.status != TciSessionStatus.PAUSED) return
-        session = session.resume(clock())
-        publish()
+        val now = clock()
+        val current = _state.value
+        val state = current.live?.state
+        val elapsed = session.elapsedSeconds(now)
+        session = session.resume()
+        pauseCurve = null
+        if (state != null) {
+            val rate = session.manualRateMlPerHour
+            if (session.manual && rate != null) {
+                manualCurve = simulateManual(current.form, state, elapsed, rate)
+                publish()
+            } else {
+                // После выведения возвращаемся к цели от фактического состояния.
+                applyReplan(state, elapsed, current.form.targetText)
+            }
+        } else {
+            publish()
+        }
         persist()
     }
 
     fun stop() {
         session = TciSession()
         manualCurve = null
+        pauseCurve = null
         activePlan = null
         activeCurve = null
         activeTarget = null
@@ -151,6 +176,8 @@ class TciViewModel(
         _state.value = current.copy(form = current.form.copy(targetText = text))
         val target = text.toBigDecimalOrNull() ?: return
         if (target.signum() <= 0 || target > MAX_TARGET_MCG_ML) return
+        // На паузе цель только запоминается: план пересчитается при возобновлении.
+        if (session.status == TciSessionStatus.PAUSED) return
         if (activeTarget?.compareTo(target) == 0) return
         applyReplan(current.live?.state ?: return, session.elapsedSeconds(clock()), text)
     }
@@ -228,11 +255,12 @@ class TciViewModel(
         _state.value =
             _state.value.copy(
                 session = session,
-                live = buildLive(plan, _state.value.form, session, clock(), manualCurve, activeCurve),
+                live = buildLive(plan, _state.value.form, session, clock(), manualCurve, activeCurve, pauseCurve),
                 disclaimerHidden = _state.value.disclaimerHidden,
             )
     }
 
+    @Suppress("LongMethod")
     private suspend fun restore() {
         val snapshot = runCatching { store.load() }.getOrNull()
         val hidden = runCatching { store.isDisclaimerHidden() }.getOrDefault(false)
@@ -271,6 +299,16 @@ class TciViewModel(
         activePlan = restoredPlan ?: computed.plan
         activeCurve = activePlan?.predicted
         activeTarget = form.targetText.toBigDecimalOrNull()
+        val pausedAt = session.pausedAtEpochMs
+        pauseCurve =
+            if (session.status == TciSessionStatus.PAUSED && pausedAt != null) {
+                val pauseStart = session.elapsedSeconds(pausedAt)
+                activeCurve?.lastOrNull { it.timeSeconds <= pauseStart }?.state?.let { state ->
+                    simulateHold(form, state, pauseStart)
+                }
+            } else {
+                null
+            }
         manualCurve =
             if (session.manual) {
                 buildManualCurveFrom(activeCurve, form, session)
@@ -282,7 +320,7 @@ class TciViewModel(
             base.copy(
                 computed = computed.withPlan(activePlan!!),
                 session = session,
-                live = buildLive(activePlan!!, form, session, now, manualCurve, activeCurve),
+                live = buildLive(activePlan!!, form, session, now, manualCurve, activeCurve, pauseCurve),
                 disclaimerHidden = hidden,
             )
         lastSavedBucket = session.elapsedSeconds(now) / SAVE_INTERVAL_SECONDS
@@ -314,7 +352,7 @@ class TciViewModel(
             base.copy(
                 computed = computed.withPlan(plan),
                 session = session,
-                live = buildLive(plan, form, session, clock(), null, activeCurve),
+                live = buildLive(plan, form, session, clock(), null, activeCurve, pauseCurve),
                 disclaimerHidden = _state.value.disclaimerHidden,
             )
         persist()
@@ -337,6 +375,21 @@ class TciViewModel(
         state: TciState,
         elapsedSeconds: Int,
         rate: BigDecimal,
+    ): List<SimStep>? = simulateConstant(form, state, elapsedSeconds, rate, TciForm.HORIZON_SECONDS)
+
+    /** Кривая выведения при паузе: насос отдаёт 0 мл/ч. */
+    private fun simulateHold(
+        form: TciForm,
+        state: TciState,
+        elapsedSeconds: Int,
+    ): List<SimStep>? = simulateConstant(form, state, elapsedSeconds, BigDecimal.ZERO, PAUSE_HORIZON_SECONDS)
+
+    private fun simulateConstant(
+        form: TciForm,
+        state: TciState,
+        elapsedSeconds: Int,
+        rate: BigDecimal,
+        horizonSeconds: Int,
     ): List<SimStep>? {
         val params = parametersOf(form) ?: return null
         return runCatching {
@@ -346,7 +399,7 @@ class TciViewModel(
                 fromOffsetSeconds = elapsedSeconds,
                 rateMlPerHour = rate,
                 concentrationMgPerMl = form.concentrationMgPerMl,
-                horizonSeconds = TciForm.HORIZON_SECONDS,
+                horizonSeconds = horizonSeconds,
             )
         }.getOrNull()
     }
@@ -397,6 +450,10 @@ class TciViewModel(
     private companion object {
         /** Как часто обновлять снимок, пока сессия идёт. */
         const val SAVE_INTERVAL_SECONDS = 15
+
+        /** Горизонт кривой выведения при паузе: 4 часа. */
+        const val PAUSE_HORIZON_SECONDS = 4 * 3600
+
         val DEFAULT_BOLUS_RATE = BigDecimal("1200")
         val MAX_TARGET_MCG_ML = BigDecimal("20")
     }

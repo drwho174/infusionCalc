@@ -16,13 +16,13 @@ class TciSessionTest {
     }
 
     @Test
-    fun `pause freezes time and resume continues`() {
+    fun `pause keeps the clock running and resume continues`() {
         val paused = TciSession().start(0L).pause(60_000L)
-        assertEquals(60, paused.elapsedSeconds(600_000L))
+        assertEquals(600, paused.elapsedSeconds(600_000L))
         assertEquals(60_000L, paused.pausedAtEpochMs)
 
-        val resumed = paused.resume(600_000L)
-        assertEquals(120, resumed.elapsedSeconds(660_000L))
+        val resumed = paused.resume()
+        assertEquals(660, resumed.elapsedSeconds(660_000L))
         assertEquals(null, resumed.pausedAtEpochMs)
     }
 

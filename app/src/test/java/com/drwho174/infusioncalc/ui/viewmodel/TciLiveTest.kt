@@ -1,6 +1,7 @@
 package com.drwho174.infusioncalc.ui.viewmodel
 
 import com.drwho174.infusioncalc.tci.TargetMode
+import com.drwho174.infusioncalc.tci.TciEngine
 import com.drwho174.infusioncalc.tci.TciModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,14 +73,29 @@ class TciLiveTest {
     }
 
     @Test
-    fun `pause starts a wake countdown`() {
+    fun `pause decays concentrations with zero rate`() {
         val paused = TciSession().start(0).pause(60_000)
-        val atPause = buildLive(plan, form, paused, 60_000, null)!!
-        val later = buildLive(plan, form, paused, 90_000, null)!!
+        val params = parametersOf(form)!!
+        val stateAtPause = plan.predicted.last { it.timeSeconds <= 60 }.state
+        val pauseCurve =
+            TciEngine.simulateConstantRate(
+                params = params,
+                fromState = stateAtPause,
+                fromOffsetSeconds = 60,
+                rateMlPerHour = BigDecimal.ZERO,
+                concentrationMgPerMl = BigDecimal("10"),
+                horizonSeconds = 14_400,
+            )
+        val atPause = buildLive(plan, form, paused, 60_000, null, null, pauseCurve)!!
+        val later = buildLive(plan, form, paused, 120_000, null, null, pauseCurve)!!
 
-        assertNotNull(atPause.wakeRemainingSeconds)
-        assertEquals(atPause.wakeRemainingSeconds!! - 30, later.wakeRemainingSeconds)
-        assertNotNull(later.wakeDisplay)
+        assertTrue(atPause.paused)
+        assertEquals(0, BigDecimal.ZERO.compareTo(atPause.currentRateMlPerHour))
+        assertTrue(
+            "Cp must decay: ${atPause.cpDisplay} -> ${later.cpDisplay}",
+            later.cpDisplay.toBigDecimal() < atPause.cpDisplay.toBigDecimal(),
+        )
+        assertTrue(later.wakeRemainingSeconds!! < atPause.wakeRemainingSeconds!!)
     }
 
     @Test

@@ -17,6 +17,8 @@ enum class TciPhase { IDLE, BOLUS, MAINTENANCE }
  */
 data class TciLive(
     val elapsedSeconds: Int,
+    /** Время для графика и курсора (при паузе продолжает идти). */
+    val chartSeconds: Int,
     val phase: TciPhase,
     val currentRateMlPerHour: BigDecimal?,
     val stepOffsetSeconds: Int?,
@@ -25,6 +27,8 @@ data class TciLive(
     val confirmed: Boolean,
     val overdue: Boolean,
     val manual: Boolean,
+    /** Пауза: насос отдаёт 0 мл/ч, концентрации выводятся в реальном времени. */
+    val paused: Boolean,
     val cpDisplay: String,
     val ceDisplay: String,
     val wakeDisplay: String?,
@@ -36,8 +40,6 @@ data class TciLive(
 
 /** Порог, после которого неподтверждённая уставка считается просроченной. */
 internal const val OVERDUE_SECONDS = 60
-
-private const val MS_PER_SECOND = 1_000L
 
 /**
  * Собирает живое состояние из плана, формы и сессии. Чистая функция:
@@ -51,35 +53,63 @@ internal fun buildLive(
     nowMs: Long,
     manualCurve: List<SimStep>?,
     sessionCurve: List<SimStep>? = null,
+    /** Кривая выведения от момента паузы (скорость 0), абсолютные времена. */
+    pauseCurve: List<SimStep>? = null,
 ): TciLive? {
     if (!session.isActive) return null
     val elapsed = session.elapsedSeconds(nowMs)
+    val pausedAt = session.pausedAtEpochMs
+    val paused = session.status == TciSessionStatus.PAUSED && pausedAt != null && pauseCurve != null
     val manualFrom = session.manualFromSeconds
     val manualRate = session.manualRateMlPerHour
-    val manualActive = manualRate != null && manualFrom != null && elapsed >= manualFrom && manualCurve != null
+    val manualActive =
+        !paused &&
+            manualRate != null &&
+            manualFrom != null &&
+            elapsed >= manualFrom &&
+            manualCurve != null
 
-    val curve: List<SimStep> =
+    val baseCurve: List<SimStep> =
         if (manualActive && manualCurve != null) {
             manualCurve
         } else {
             sessionCurve ?: plan.predicted
         }
+    // На паузе насос отдаёт 0: к кривой до момента паузы добавляется живое выведение.
+    val curve: List<SimStep> =
+        if (paused && pausedAt != null && pauseCurve != null) {
+            val pauseStart = session.elapsedSeconds(pausedAt)
+            baseCurve.filter { it.timeSeconds < pauseStart } +
+                pauseCurve.filter { it.timeSeconds >= pauseStart }
+        } else {
+            baseCurve
+        }
     val point = curve.lastOrNull { it.timeSeconds <= elapsed } ?: curve.lastOrNull()
     val state = point?.state
 
     val advice =
-        if (manualActive) {
-            Advice(
-                phase = TciPhase.MAINTENANCE,
-                rate = manualRate,
-                offset = manualFrom,
-                nextIn = null,
-                nextRate = null,
-                confirmed = true,
-                overdue = false,
-            )
-        } else {
-            planAdvice(plan, session, elapsed)
+        when {
+            paused ->
+                Advice(
+                    phase = TciPhase.MAINTENANCE,
+                    rate = BigDecimal.ZERO,
+                    offset = null,
+                    nextIn = null,
+                    nextRate = null,
+                    confirmed = true,
+                    overdue = false,
+                )
+            manualActive ->
+                Advice(
+                    phase = TciPhase.MAINTENANCE,
+                    rate = manualRate,
+                    offset = manualFrom,
+                    nextIn = null,
+                    nextRate = null,
+                    confirmed = true,
+                    overdue = false,
+                )
+            else -> planAdvice(plan, session, elapsed)
         }
 
     val wakeSeconds =
@@ -95,18 +125,9 @@ internal fun buildLive(
             )
         }
 
-    val wakeRemaining =
-        when {
-            wakeSeconds == null -> null
-            session.status == TciSessionStatus.PAUSED && session.pausedAtEpochMs != null -> {
-                val sincePause = ((nowMs - session.pausedAtEpochMs) / MS_PER_SECOND).toInt().coerceAtLeast(0)
-                (wakeSeconds - sincePause).coerceAtLeast(0)
-            }
-            else -> wakeSeconds
-        }
-
     return TciLive(
         elapsedSeconds = elapsed,
+        chartSeconds = elapsed,
         phase = advice.phase,
         currentRateMlPerHour = advice.rate?.let { TciEngine.formatRateMlPerHour(it) },
         stepOffsetSeconds = advice.offset,
@@ -115,10 +136,11 @@ internal fun buildLive(
         confirmed = advice.confirmed,
         overdue = advice.overdue,
         manual = manualActive,
+        paused = paused,
         cpDisplay = point?.cpMcgPerMl?.let { TciEngine.formatConcentrationMcgMl(it).display() } ?: "—",
         ceDisplay = point?.ceMcgPerMl?.let { TciEngine.formatConcentrationMcgMl(it).display() } ?: "—",
-        wakeDisplay = formatWakeTime(wakeRemaining),
-        wakeRemainingSeconds = wakeRemaining,
+        wakeDisplay = formatWakeTime(wakeSeconds),
+        wakeRemainingSeconds = wakeSeconds,
         curve = curve,
         state = state,
     )

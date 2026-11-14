@@ -31,13 +31,13 @@ data class TciSession(
     /** Прошедшее время; ограничено сутками, чтобы скачок часов не ломал экран. */
     fun elapsedSeconds(nowMs: Long): Int {
         val running =
-            if (status == TciSessionStatus.RUNNING && runningSinceEpochMs != null) {
+            if (runningSinceEpochMs != null) {
                 val deltaSeconds = (nowMs - runningSinceEpochMs) / MS_PER_SECOND
                 deltaSeconds.coerceIn(0L, MAX_SESSION_SECONDS.toLong()).toInt()
             } else {
-                0
+                accumulatedSeconds
             }
-        return (accumulatedSeconds + running).coerceIn(0, MAX_SESSION_SECONDS)
+        return running.coerceIn(0, MAX_SESSION_SECONDS)
     }
 
     fun start(nowMs: Long): TciSession =
@@ -47,6 +47,10 @@ data class TciSession(
             runningSinceEpochMs = nowMs,
         )
 
+    /**
+     * Пауза: часы сессии продолжают идти (график живой), но насос отдаёт 0 мл/ч.
+     * [pausedAtEpochMs] — момент остановки для расчёта выведения.
+     */
     fun pause(nowMs: Long): TciSession =
         if (status != TciSessionStatus.RUNNING) {
             this
@@ -54,18 +58,16 @@ data class TciSession(
             copy(
                 status = TciSessionStatus.PAUSED,
                 accumulatedSeconds = elapsedSeconds(nowMs),
-                runningSinceEpochMs = null,
                 pausedAtEpochMs = nowMs,
             )
         }
 
-    fun resume(nowMs: Long): TciSession =
+    fun resume(): TciSession =
         if (status != TciSessionStatus.PAUSED) {
             this
         } else {
             copy(
                 status = TciSessionStatus.RUNNING,
-                runningSinceEpochMs = nowMs,
                 pausedAtEpochMs = null,
             )
         }

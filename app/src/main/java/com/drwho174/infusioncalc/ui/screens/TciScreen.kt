@@ -451,6 +451,7 @@ private fun PumpPanel(
                 text =
                     stringResource(
                         when {
+                            live.paused -> R.string.tci_pump_phase_paused
                             live.manual -> R.string.tci_pump_manual_mode
                             live.phase == TciPhase.BOLUS -> R.string.tci_pump_phase_bolus
                             else -> R.string.tci_pump_phase_maintenance
@@ -471,6 +472,11 @@ private fun PumpPanel(
             }
             val nextIn = live.nextChangeInSeconds
             when {
+                live.paused ->
+                    Text(
+                        stringResource(R.string.tci_pump_paused),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 live.manual ->
                     Text(
                         stringResource(R.string.tci_pump_manual_active),
@@ -517,21 +523,23 @@ private fun PumpPanel(
                 )
             }
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onConfirm, enabled = !live.confirmed && !live.manual) {
-                    Text(
-                        stringResource(
-                            if (live.confirmed) R.string.tci_pump_confirmed else R.string.tci_pump_confirm,
-                        ),
-                    )
-                }
-                if (live.manual) {
-                    OutlinedButton(onClick = onReturnToAuto) {
-                        Text(stringResource(R.string.tci_return_auto))
+            if (!live.paused) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onConfirm, enabled = !live.confirmed && !live.manual) {
+                        Text(
+                            stringResource(
+                                if (live.confirmed) R.string.tci_pump_confirmed else R.string.tci_pump_confirm,
+                            ),
+                        )
                     }
-                } else {
-                    TextButton(onClick = onManualRate) {
-                        Text(stringResource(R.string.tci_pump_manual_action))
+                    if (live.manual) {
+                        OutlinedButton(onClick = onReturnToAuto) {
+                            Text(stringResource(R.string.tci_return_auto))
+                        }
+                    } else {
+                        TextButton(onClick = onManualRate) {
+                            Text(stringResource(R.string.tci_pump_manual_action))
+                        }
                     }
                 }
             }
@@ -966,7 +974,7 @@ private fun PlotSection(
     onReturnToAuto: () -> Unit,
 ) {
     var showManual by remember { mutableStateOf(false) }
-    val elapsed = live?.elapsedSeconds ?: 0
+    val elapsed = live?.chartSeconds ?: 0
     TciSectionCard(title = stringResource(R.string.tci_section_plot)) {
         if (live != null) {
             PumpPanel(

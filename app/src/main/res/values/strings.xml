@@ -222,7 +222,10 @@
     <string name="tci_target_change_hint">The target can be changed during infusion — the bolus is recalculated.</string>
     <string name="tci_confirm_reset_title">Confirm</string>
     <string name="tci_wake_countdown">Countdown after pause: the infusion is stopped</string>
+    <string name="tci_pump_phase_paused">Paused</string>
+    <string name="tci_pump_paused">Paused — pump rate 0 mL/h; concentrations are decaying.</string>
 </resources>
+
 
 
 
