@@ -1,6 +1,5 @@
 package com.drwho174.infusioncalc.ui.screens
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,15 +12,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,10 +44,9 @@ import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.ui.amountUnitLabel
+import com.drwho174.infusioncalc.ui.components.ConcentrationPresetDialog
 import com.drwho174.infusioncalc.ui.displayLabel
-import com.drwho174.infusioncalc.ui.normalizeDecimalInput
 import com.drwho174.infusioncalc.ui.viewmodel.EditorViewModel
-import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,42 +190,17 @@ fun EditorScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                state.presets.forEach { preset ->
-                    FilterChip(
-                        selected = state.selectedPresetId == preset.id,
-                        onClick = { viewModel.onPresetSelected(preset.id) },
-                        label = { Text(preset.displayLabel()) },
+            state.presets.forEach { preset ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = preset.displayLabel(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
                     )
-                }
-                AssistChip(
-                    onClick = {
-                        editTarget = null
-                        dialogOpen = true
-                    },
-                    label = { Text(stringResource(R.string.add_concentration)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = null,
-                        )
-                    },
-                )
-            }
-            val selected = state.presets.firstOrNull { it.id == state.selectedPresetId }
-            if (selected != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (selected.mode == ConcentrationMode.MASS_VOLUME) {
+                    if (preset.mode == ConcentrationMode.MASS_VOLUME) {
                         TextButton(
                             onClick = {
-                                editTarget = selected
+                                editTarget = preset
                                 dialogOpen = true
                             },
                         ) {
@@ -240,11 +208,19 @@ fun EditorScreen(
                         }
                     }
                     if (state.presets.size > 1) {
-                        TextButton(onClick = { viewModel.deletePreset(selected.id) }) {
+                        TextButton(onClick = { viewModel.deletePreset(preset.id) }) {
                             Text(stringResource(R.string.delete))
                         }
                     }
                 }
+            }
+            TextButton(
+                onClick = {
+                    editTarget = null
+                    dialogOpen = true
+                },
+            ) {
+                Text(stringResource(R.string.add_concentration))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -279,7 +255,7 @@ fun EditorScreen(
 
     if (dialogOpen) {
         val current = editTarget
-        PresetEditorDialog(
+        ConcentrationPresetDialog(
             initial = current,
             onDismiss = { dialogOpen = false },
             onSave = { amount, unit, volume ->
@@ -292,90 +268,4 @@ fun EditorScreen(
             },
         )
     }
-}
-
-@Composable
-@Suppress("LongMethod")
-private fun PresetEditorDialog(
-    initial: ConcentrationPreset?,
-    onDismiss: () -> Unit,
-    onSave: (BigDecimal, AmountUnit, BigDecimal) -> Unit,
-) {
-    var amount by rememberSaveable { mutableStateOf(initial?.amount?.toPlainString() ?: "") }
-    var volume by rememberSaveable { mutableStateOf(initial?.volumeMl?.toPlainString() ?: "") }
-    var unitName by rememberSaveable { mutableStateOf((initial?.amountUnit ?: AmountUnit.MG).name) }
-    var unitMenu by remember { mutableStateOf(false) }
-
-    val unit = AmountUnit.valueOf(unitName)
-    val amountValue = amount.toBigDecimalOrNull()
-    val volumeValue = volume.toBigDecimalOrNull()
-    val valid =
-        amountValue != null &&
-            amountValue.signum() > 0 &&
-            volumeValue != null &&
-            volumeValue.signum() > 0
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (initial == null) R.string.add_concentration else R.string.edit_concentration,
-                ),
-            )
-        },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = normalizeDecimalInput(it) },
-                    label = { Text(stringResource(R.string.mass)) },
-                    suffix = { Text(amountUnitLabel(unit)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedButton(
-                    onClick = { unitMenu = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(amountUnitLabel(unit))
-                }
-                DropdownMenu(expanded = unitMenu, onDismissRequest = { unitMenu = false }) {
-                    AmountUnit.entries.forEach { candidate ->
-                        DropdownMenuItem(
-                            text = { Text(amountUnitLabel(candidate)) },
-                            onClick = {
-                                unitName = candidate.name
-                                unitMenu = false
-                            },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = volume,
-                    onValueChange = { volume = normalizeDecimalInput(it) },
-                    label = { Text(stringResource(R.string.volume)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (valid && amountValue != null && volumeValue != null) {
-                        onSave(amountValue, unit, volumeValue)
-                    }
-                },
-                enabled = valid,
-            ) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
 }

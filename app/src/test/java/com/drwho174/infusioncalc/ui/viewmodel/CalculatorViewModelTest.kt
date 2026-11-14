@@ -64,6 +64,33 @@ class CalculatorViewModelTest {
         }
 
     @Test
+    fun `adding a concentration saves it and selects it`() =
+        runTest(dispatcher) {
+            val repository = FakeDrugRepository(listOf(drug()))
+            val viewModel =
+                CalculatorViewModel(
+                    "norepinephrine",
+                    repository,
+                    WeightStore(),
+                    FakeFolderRepository(),
+                )
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            viewModel.addPreset(BigDecimal("8"), AmountUnit.MG, BigDecimal("50"))
+            advanceUntilIdle()
+
+            val saved = repository.getDrug("norepinephrine")!!
+            assertEquals(2, saved.presets.size)
+            assertEquals(
+                saved.presets.last().id,
+                viewModel.state.value.preset
+                    ?.id,
+            )
+            job.cancel()
+        }
+
+    @Test
     fun `rate is converted back to dose`() =
         runTest(dispatcher) {
             val viewModel =
