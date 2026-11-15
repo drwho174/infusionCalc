@@ -20,7 +20,7 @@
     <!-- weight -->
     <string name="weight_title">Вес пациента</string>
     <string name="weight_subtitle">Укажите вес один раз — он действует для всех препаратов</string>
-    <string name="weight_label">Вес пациента, кг</string>
+    <string name="weight_label">Вес, кг</string>
     <string name="weight_hint">например, 70</string>
     <string name="weight_invalid">Введите корректное число</string>
     <string name="weight_continue">Продолжить</string>
@@ -109,8 +109,20 @@
     <string name="theme_dark">Тёмная</string>
     <string name="language">Язык</string>
     <string name="language_system">Системный (RU/EN по языку устройства)</string>
-    <string name="version">Версия 0.1.0</string>
+    <string name="language_system_short">Системный</string>
+    <string name="language_ru">Русский</string>
+    <string name="language_en">English</string>
+    <string name="language_api_note">Выбор языка доступен на Android 13 и новее</string>
+    <string name="version">Версия %1$s</string>
     <string name="settings_offline">Приложение работает офлайн, данные не передаются</string>
+    <string name="about_title">О программе</string>
+    <string name="about_description">Калькулятор скорости инфузии: расчёт скорости по заданной концентрации и обратный расчёт дозы. Справочный инструмент; не заменяет назначение врача и проверку.</string>
+    <string name="author_name">Гладких Филипп Андреевич</string>
+    <string name="author_email">filipphome@mail.ru</string>
+    <string name="author_telegram">drwho174</string>
+    <string name="author_email_label">email:</string>
+    <string name="author_telegram_label">Telegram</string>
+    <string name="no_app_to_handle_action">Нет приложения для этого действия</string>
 
     <!-- tci card -->
     <string name="tci_title">Пропофол</string>
@@ -234,6 +246,8 @@
     <string name="edit">Изменить</string>
     <string name="add_short">Добавить</string>
 </resources>
+
+
 
 
 

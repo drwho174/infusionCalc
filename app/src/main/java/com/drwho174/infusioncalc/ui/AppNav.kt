@@ -15,6 +15,9 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.drwho174.infusioncalc.BuildConfig
+import com.drwho174.infusioncalc.ui.about.AboutScreen
+import com.drwho174.infusioncalc.ui.navigation.AboutKey
 import com.drwho174.infusioncalc.ui.navigation.CalculatorKey
 import com.drwho174.infusioncalc.ui.navigation.CatalogKey
 import com.drwho174.infusioncalc.ui.navigation.DisclaimerKey
@@ -132,6 +135,13 @@ fun AppNav(
                 entry<SettingsKey> {
                     SettingsScreen(
                         viewModel = koinViewModel(),
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenAbout = { backStack.add(AboutKey) },
+                    )
+                }
+                entry<AboutKey> {
+                    AboutScreen(
+                        versionName = BuildConfig.VERSION_NAME,
                         onBack = { backStack.removeLastOrNull() },
                     )
                 }

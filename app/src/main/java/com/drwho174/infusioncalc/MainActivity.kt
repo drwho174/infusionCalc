@@ -16,10 +16,12 @@ import com.drwho174.infusioncalc.ui.AppNav
 import com.drwho174.infusioncalc.ui.theme.InfusionCalcTheme
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import org.koin.androidx.compose.koinViewModel
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Locale.setDefault(resources.configuration.locales[0])
         enableEdgeToEdge()
         setContent {
             val appViewModel: AppViewModel = koinViewModel()

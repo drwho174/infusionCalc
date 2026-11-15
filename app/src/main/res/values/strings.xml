@@ -20,7 +20,7 @@
     <!-- weight -->
     <string name="weight_title">Patient weight</string>
     <string name="weight_subtitle">Enter the weight once — it applies to all drugs</string>
-    <string name="weight_label">Patient weight, kg</string>
+    <string name="weight_label">Weight, kg</string>
     <string name="weight_hint">e.g. 70</string>
     <string name="weight_invalid">Enter a valid number</string>
     <string name="weight_continue">Continue</string>
@@ -109,8 +109,20 @@
     <string name="theme_dark">Dark</string>
     <string name="language">Language</string>
     <string name="language_system">System (RU/EN by device language)</string>
-    <string name="version">Version 0.1.0</string>
+    <string name="language_system_short">System</string>
+    <string name="language_ru">Russian</string>
+    <string name="language_en">English</string>
+    <string name="language_api_note">Language selection is available on Android 13 and newer</string>
+    <string name="version">Version %1$s</string>
     <string name="settings_offline">The app works offline, data is not transmitted</string>
+    <string name="about_title">About</string>
+    <string name="about_description">A calculator for infusion rate from a target concentration and for the reverse dose calculation. A reference tool; it does not replace a physician order and verification.</string>
+    <string name="author_name">Filipp Gladkikh</string>
+    <string name="author_email">filipphome@mail.ru</string>
+    <string name="author_telegram">drwho174</string>
+    <string name="author_email_label">email:</string>
+    <string name="author_telegram_label">Telegram</string>
+    <string name="no_app_to_handle_action">No app to handle this action</string>
 
     <!-- tci card -->
     <string name="tci_title">Propofol</string>
@@ -234,6 +246,8 @@
     <string name="edit">Edit</string>
     <string name="add_short">Add</string>
 </resources>
+
+
 
 
 

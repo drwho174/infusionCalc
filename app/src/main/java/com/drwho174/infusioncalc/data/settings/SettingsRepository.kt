@@ -18,6 +18,8 @@ data class AppSettings(
         const val THEME_LIGHT = "LIGHT"
         const val THEME_DARK = "DARK"
         const val LANGUAGE_SYSTEM = "SYSTEM"
+        const val LANGUAGE_RU = "RU"
+        const val LANGUAGE_EN = "EN"
     }
 }
 

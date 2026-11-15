@@ -10,6 +10,7 @@ import com.drwho174.infusioncalc.notif.NoopTciNotifier
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
 import com.drwho174.infusioncalc.testutil.FakeFolderRepository
 import com.drwho174.infusioncalc.testutil.FakeTciSessionStore
+import com.drwho174.infusioncalc.ui.about.AboutScreen
 import com.drwho174.infusioncalc.ui.theme.InfusionCalcTheme
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
@@ -60,7 +61,7 @@ class ScreensRoborazziTest {
         val viewModel = AppViewModel(repository)
         composeRule.setContent {
             InfusionCalcTheme {
-                SettingsScreen(viewModel = viewModel, onBack = {})
+                SettingsScreen(viewModel = viewModel, onBack = {}, onOpenAbout = {})
             }
         }
         waitFor("Settings")
@@ -166,6 +167,25 @@ class ScreensRoborazziTest {
         }
         waitFor("Пропофол")
         capture("tci_ru.png")
+    }
+
+    @Test
+    fun aboutScreen() {
+        composeRule.setContent {
+            InfusionCalcTheme { AboutScreen(versionName = "0.1.0", onBack = {}) }
+        }
+        waitFor("About")
+        capture("about.png")
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h740dp-xhdpi")
+    fun aboutScreenRu() {
+        composeRule.setContent {
+            InfusionCalcTheme { AboutScreen(versionName = "0.1.0", onBack = {}) }
+        }
+        waitFor("О программе")
+        capture("about_ru.png")
     }
 
     private fun waitFor(text: String) {
