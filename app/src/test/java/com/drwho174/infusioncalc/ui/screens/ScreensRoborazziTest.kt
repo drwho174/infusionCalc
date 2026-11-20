@@ -63,7 +63,7 @@ class ScreensRoborazziTest {
         val viewModel = AppViewModel(repository)
         composeRule.setContent {
             InfusionCalcTheme {
-                SettingsScreen(viewModel = viewModel, onBack = {}, onOpenAbout = {})
+                SettingsScreen(viewModel = viewModel, onBack = {}, onOpenAbout = {}, onOpenFolderSettings = {})
             }
         }
         waitFor("Settings")

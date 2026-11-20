@@ -45,6 +45,7 @@ fun SettingsScreen(
     viewModel: AppViewModel,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenFolderSettings: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val current = settings ?: AppSettings()
@@ -127,6 +128,29 @@ fun SettingsScreen(
                         text = stringResource(R.string.language_api_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            SettingsCard(title = stringResource(R.string.folders)) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOpenFolderSettings)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.folder_settings),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

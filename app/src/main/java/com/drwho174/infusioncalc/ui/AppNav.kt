@@ -119,7 +119,6 @@ fun AppNav(
                         onOpenTci = { backStack.add(TciKey) },
                         onAddDrug = { backStack.add(EditorKey()) },
                         onOpenSettings = { backStack.add(SettingsKey) },
-                        onOpenFolderSettings = { backStack.add(FolderSettingsKey) },
                         onEditWeight = { backStack.add(WeightKey) },
                     )
                 }
@@ -164,6 +163,7 @@ fun AppNav(
                         viewModel = koinViewModel(),
                         onBack = { backStack.removeLastOrNull() },
                         onOpenAbout = { backStack.add(AboutKey) },
+                        onOpenFolderSettings = { backStack.add(FolderSettingsKey) },
                     )
                 }
                 entry<FolderSettingsKey> {

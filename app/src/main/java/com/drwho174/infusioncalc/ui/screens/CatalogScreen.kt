@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,12 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -73,7 +71,6 @@ fun CatalogScreen(
     onOpenTci: () -> Unit,
     onAddDrug: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenFolderSettings: () -> Unit = {},
     onEditWeight: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,7 +83,7 @@ fun CatalogScreen(
     BackHandler { showExitDialog = true }
 
     Scaffold(
-        topBar = { CatalogTopBar(onOpenSettings, onOpenFolderSettings, state.weight, onEditWeight) },
+        topBar = { CatalogTopBar(onOpenSettings, state.weight, onEditWeight) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddDrug) {
                 Icon(
@@ -229,16 +226,23 @@ private fun FolderChip(
             },
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier =
-            Modifier.combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
+            Modifier
+                .height(32.dp)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ),
     ) {
-        Text(
-            text = folder.name,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = folder.name,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -315,11 +319,9 @@ private fun TciCatalogItem(onOpen: () -> Unit) {
 @Composable
 private fun CatalogTopBar(
     onOpenSettings: () -> Unit,
-    onOpenFolderSettings: () -> Unit = {},
     weight: BigDecimal? = null,
     onEditWeight: () -> Unit = {},
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(stringResource(R.string.catalog_title)) },
         actions = {
@@ -339,26 +341,6 @@ private fun CatalogTopBar(
                     imageVector = Icons.Filled.Settings,
                     contentDescription = stringResource(R.string.settings),
                 )
-            }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.folder_settings),
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.folder_settings)) },
-                        onClick = {
-                            menuExpanded = false
-                            onOpenFolderSettings()
-                        },
-                    )
-                }
             }
         },
     )
