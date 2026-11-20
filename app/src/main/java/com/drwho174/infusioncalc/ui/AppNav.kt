@@ -103,7 +103,13 @@ fun AppNav(
                 entry<WeightKey> {
                     WeightScreen(
                         viewModel = koinViewModel(),
-                        onContinue = { backStack.add(CatalogKey) },
+                        onContinue = {
+                            if (backStack.any { it is CatalogKey }) {
+                                backStack.removeLastOrNull()
+                            } else {
+                                backStack.add(CatalogKey)
+                            }
+                        },
                     )
                 }
                 entry<CatalogKey> {
@@ -114,6 +120,7 @@ fun AppNav(
                         onAddDrug = { backStack.add(EditorKey()) },
                         onOpenSettings = { backStack.add(SettingsKey) },
                         onOpenFolderSettings = { backStack.add(FolderSettingsKey) },
+                        onEditWeight = { backStack.add(WeightKey) },
                     )
                 }
                 entry<CalculatorKey> { key ->

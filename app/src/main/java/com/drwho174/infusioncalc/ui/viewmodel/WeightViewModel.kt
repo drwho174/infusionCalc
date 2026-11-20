@@ -19,6 +19,16 @@ class WeightViewModel(
     private val _state = MutableStateFlow(WeightUiState())
     val state: StateFlow<WeightUiState> = _state.asStateFlow()
 
+    init {
+        weightStore.weight.value?.let { weight ->
+            _state.value =
+                WeightUiState(
+                    text = weight.toPlainString(),
+                    valid = weight > BigDecimal.ZERO && weight <= MAX_WEIGHT,
+                )
+        }
+    }
+
     fun onTextChange(raw: String) {
         val text = raw.filter { it.isDigit() || it == '.' || it == ',' }.replace(',', '.')
         val parsed = text.toBigDecimalOrNull()

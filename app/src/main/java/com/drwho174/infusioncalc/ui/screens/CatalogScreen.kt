@@ -4,6 +4,7 @@ package com.drwho174.infusioncalc.ui.screens
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,9 +58,11 @@ import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.ui.components.AddDrugsToFolderDialog
+import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogUiState
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
+import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +74,7 @@ fun CatalogScreen(
     onAddDrug: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenFolderSettings: () -> Unit = {},
+    onEditWeight: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -79,7 +86,7 @@ fun CatalogScreen(
     BackHandler { showExitDialog = true }
 
     Scaffold(
-        topBar = { CatalogTopBar(onOpenSettings, onOpenFolderSettings) },
+        topBar = { CatalogTopBar(onOpenSettings, onOpenFolderSettings, state.weight, onEditWeight) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddDrug) {
                 Icon(
@@ -190,21 +197,47 @@ private fun CatalogChips(
             label = { Text(stringResource(R.string.folder_all)) },
         )
         state.folders.forEach { folder ->
-            FilterChip(
+            FolderChip(
+                folder = folder,
                 selected = state.selectedFolderId == folder.id,
                 onClick = { onSelect(folder.id) },
-                modifier =
-                    Modifier.combinedClickable(
-                        onClick = { onSelect(folder.id) },
-                        onLongClick = { onFolderLongPress(folder) },
-                    ),
-                label = { Text(folder.name) },
+                onLongClick = { onFolderLongPress(folder) },
             )
         }
         AssistChip(
             onClick = onNewFolder,
             label = { Text(stringResource(R.string.new_folder)) },
             leadingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
+        )
+    }
+}
+
+@Composable
+private fun FolderChip(
+    folder: Folder,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color =
+            if (selected) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier =
+            Modifier.combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
+    ) {
+        Text(
+            text = folder.name,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
     }
 }
@@ -283,11 +316,24 @@ private fun TciCatalogItem(onOpen: () -> Unit) {
 private fun CatalogTopBar(
     onOpenSettings: () -> Unit,
     onOpenFolderSettings: () -> Unit = {},
+    weight: BigDecimal? = null,
+    onEditWeight: () -> Unit = {},
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(stringResource(R.string.catalog_title)) },
         actions = {
+            TextButton(onClick = onEditWeight) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_weight),
+                    contentDescription = stringResource(R.string.edit_weight),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.weight_button_value, weight?.display() ?: "—"),
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
             IconButton(onClick = onOpenSettings) {
                 Icon(
                     imageVector = Icons.Filled.Settings,

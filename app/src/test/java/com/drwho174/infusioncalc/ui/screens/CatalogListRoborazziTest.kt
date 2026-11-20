@@ -3,10 +3,12 @@ package com.drwho174.infusioncalc.ui.screens
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
+import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.domain.model.ConcentrationMode
 import com.drwho174.infusioncalc.domain.model.ConcentrationPreset
 import com.drwho174.infusioncalc.domain.model.DoseScheme
 import com.drwho174.infusioncalc.domain.model.Drug
+import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.engine.AmountUnit
 import com.drwho174.infusioncalc.engine.TimeBase
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
@@ -42,7 +44,12 @@ class CatalogListRoborazziTest {
                     drug("b", "Мой препарат", builtIn = false),
                 ),
             )
-        val viewModel = CatalogViewModel(repository, FakeFolderRepository())
+        val viewModel =
+            CatalogViewModel(
+                repository,
+                FakeFolderRepository(listOf(Folder(id = "f1", name = "Инфузии"))),
+                WeightStore().apply { set(BigDecimal("70")) },
+            )
 
         composeRule.setContent {
             InfusionCalcTheme {

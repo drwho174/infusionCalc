@@ -136,7 +136,7 @@ class TciSessionService : Service() {
         val builder =
             NotificationCompat
                 .Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_tci_notification)
+                .setSmallIcon(R.mipmap.ic_launcher_foreground)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -150,20 +150,20 @@ class TciSessionService : Service() {
 
         if (!content.paused) {
             builder.addAction(
-                R.drawable.ic_tci_notification,
+                R.mipmap.ic_launcher_foreground,
                 getString(R.string.tci_notif_action_pause),
                 actionPending(TciNotificationActions.ACTION_PAUSE, 1),
             )
             if (content.dueOffsetSeconds != null) {
                 builder.addAction(
-                    R.drawable.ic_tci_notification,
+                    R.mipmap.ic_launcher_foreground,
                     getString(R.string.tci_notif_action_confirm),
                     actionPending(TciNotificationActions.ACTION_CONFIRM, 2),
                 )
             }
         }
         builder.addAction(
-            R.drawable.ic_tci_notification,
+            R.mipmap.ic_launcher_foreground,
             getString(R.string.tci_notif_action_stop),
             actionPending(TciNotificationActions.ACTION_STOP, STOP_ACTION_REQUEST),
         )

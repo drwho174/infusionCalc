@@ -22,6 +22,15 @@ class WeightViewModelTest {
     }
 
     @Test
+    fun `current weight is prefilled for editing`() {
+        val store = WeightStore().apply { set(BigDecimal("70")) }
+        val viewModel = WeightViewModel(store)
+
+        assertEquals("70", viewModel.state.value.text)
+        assertTrue(viewModel.state.value.valid)
+    }
+
+    @Test
     fun `zero weight is invalid`() {
         val viewModel = WeightViewModel(WeightStore())
         viewModel.onTextChange("0")

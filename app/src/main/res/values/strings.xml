@@ -21,6 +21,8 @@
     <string name="weight_title">Patient weight</string>
     <string name="weight_subtitle">Enter the weight once — it applies to all drugs</string>
     <string name="weight_label">Weight, kg</string>
+    <string name="edit_weight">Edit weight</string>
+    <string name="weight_button_value">%1$s kg</string>
     <string name="weight_hint">e.g. 70</string>
     <string name="weight_invalid">Enter a valid number</string>
     <string name="weight_continue">Continue</string>
@@ -33,7 +35,6 @@
     <string name="empty_body">Add a drug with its concentration and dose units</string>
     <string name="folder_all">All</string>
     <string name="new_folder">New folder</string>
-    <string name="folders_manage_title">Folders</string>
     <string name="folder_settings">Folder settings</string>
     <string name="folders_empty">No folders yet</string>
     <string name="exit_title">Exit the app?</string>
@@ -251,6 +252,9 @@
     <string name="edit">Edit</string>
     <string name="add_short">Add</string>
 </resources>
+
+
+
 
 
 

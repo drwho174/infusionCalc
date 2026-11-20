@@ -21,6 +21,8 @@
     <string name="weight_title">Вес пациента</string>
     <string name="weight_subtitle">Укажите вес один раз — он действует для всех препаратов</string>
     <string name="weight_label">Вес, кг</string>
+    <string name="edit_weight">Изменить вес</string>
+    <string name="weight_button_value">%1$s кг</string>
     <string name="weight_hint">например, 70</string>
     <string name="weight_invalid">Введите корректное число</string>
     <string name="weight_continue">Продолжить</string>
@@ -33,7 +35,6 @@
     <string name="empty_body">Добавьте препарат с нужной концентрацией и единицами дозы</string>
     <string name="folder_all">Все</string>
     <string name="new_folder">Новая папка</string>
-    <string name="folders_manage_title">Папки</string>
     <string name="folder_settings">Настройки папок</string>
     <string name="folders_empty">Папок пока нет</string>
     <string name="exit_title">Выйти из приложения?</string>
@@ -251,6 +252,9 @@
     <string name="edit">Изменить</string>
     <string name="add_short">Добавить</string>
 </resources>
+
+
+
 
 
 

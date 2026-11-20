@@ -2,16 +2,19 @@ package com.drwho174.infusioncalc.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.drwho174.infusioncalc.domain.WeightStore
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.domain.repository.DrugRepository
 import com.drwho174.infusioncalc.domain.repository.FolderRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 
 data class CatalogUiState(
     val filtered: List<Drug> = emptyList(),
@@ -20,17 +23,19 @@ data class CatalogUiState(
     val folders: List<Folder> = emptyList(),
     val selectedFolderId: String? = null,
     val query: String = "",
+    val weight: BigDecimal? = null,
 )
 
 /** Список препаратов с поиском и папками (null — «Все»). */
 class CatalogViewModel(
     private val repository: DrugRepository,
     private val folderRepository: FolderRepository,
+    private val weightStore: WeightStore = WeightStore(),
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val selectedFolderId = MutableStateFlow<String?>(null)
 
-    val state: StateFlow<CatalogUiState> =
+    private val baseState: Flow<CatalogUiState> =
         combine(
             repository.observeDrugs(),
             folderRepository.observeFolders(),
@@ -61,7 +66,12 @@ class CatalogViewModel(
                 selectedFolderId = currentFolder,
                 query = currentQuery,
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CatalogUiState())
+        }
+
+    val state: StateFlow<CatalogUiState> =
+        combine(baseState, weightStore.weight) { current, weight ->
+            current.copy(weight = weight)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), CatalogUiState())
 
     fun onQueryChange(value: String) {
         query.value = value
@@ -90,5 +100,9 @@ class CatalogViewModel(
             folderRepository.delete(folderId)
             if (selectedFolderId.value == folderId) selectedFolderId.value = null
         }
+    }
+
+    private companion object {
+        const val SUBSCRIPTION_TIMEOUT_MS = 5_000L
     }
 }

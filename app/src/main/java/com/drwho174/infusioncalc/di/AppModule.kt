@@ -49,7 +49,7 @@ val appModule =
 
         viewModel { AppViewModel(get()) }
         viewModel { WeightViewModel(get()) }
-        viewModel { CatalogViewModel(get(), get()) }
+        viewModel { CatalogViewModel(get(), get(), get()) }
         viewModel { FolderSettingsViewModel(get()) }
         viewModel { (drugId: String) -> CalculatorViewModel(drugId, get(), get(), get()) }
         viewModel { (drugId: String) ->
