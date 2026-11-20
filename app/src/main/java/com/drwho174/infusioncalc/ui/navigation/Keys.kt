@@ -29,6 +29,9 @@ data object SettingsKey : NavKey
 data object AboutKey : NavKey
 
 @Serializable
+data object FolderSettingsKey : NavKey
+
+@Serializable
 data object TciKey : NavKey
 
 @Serializable

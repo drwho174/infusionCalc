@@ -2,8 +2,11 @@
 
 package com.drwho174.infusioncalc.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +20,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -40,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,26 +54,32 @@ import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.ui.components.AddDrugsToFolderDialog
-import com.drwho174.infusioncalc.ui.components.FolderNameField
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogUiState
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod", "LongParameterList")
 fun CatalogScreen(
     viewModel: CatalogViewModel,
     onOpenDrug: (String) -> Unit,
     onOpenTci: () -> Unit,
     onAddDrug: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFolderSettings: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showFolderDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showNewFolderDialog by remember { mutableStateOf(false) }
     var showAddDrugsDialog by remember { mutableStateOf(false) }
+    var pendingDeleteFolder by remember { mutableStateOf<Folder?>(null) }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    BackHandler { showExitDialog = true }
 
     Scaffold(
-        topBar = { CatalogTopBar(onOpenSettings) },
+        topBar = { CatalogTopBar(onOpenSettings, onOpenFolderSettings) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddDrug) {
                 Icon(
@@ -87,7 +100,8 @@ fun CatalogScreen(
             CatalogChips(
                 state = state,
                 onSelect = viewModel::onFolderSelected,
-                onNewFolder = { showFolderDialog = true },
+                onNewFolder = { showNewFolderDialog = true },
+                onFolderLongPress = { pendingDeleteFolder = it },
             )
             CatalogBody(
                 state = state,
@@ -99,12 +113,45 @@ fun CatalogScreen(
         }
     }
 
-    if (showFolderDialog) {
-        FolderDialog(
-            folders = state.folders,
-            onCreate = viewModel::onCreateFolder,
-            onDelete = viewModel::onDeleteFolder,
-            onDismiss = { showFolderDialog = false },
+    if (showNewFolderDialog) {
+        CreateFolderDialog(
+            existingNames = state.folders.map { it.name },
+            onCreate = {
+                viewModel.onCreateFolder(it)
+                showNewFolderDialog = false
+            },
+            onDismiss = { showNewFolderDialog = false },
+        )
+    }
+
+    DeleteFolderConfirm(
+        folder = pendingDeleteFolder,
+        onConfirm = {
+            pendingDeleteFolder?.let { viewModel.onDeleteFolder(it.id) }
+            pendingDeleteFolder = null
+        },
+        onDismiss = { pendingDeleteFolder = null },
+    )
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(stringResource(R.string.exit_title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExitDialog = false
+                        (context as? Activity)?.finish()
+                    },
+                ) {
+                    Text(stringResource(R.string.exit_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
         )
     }
 
@@ -127,6 +174,7 @@ private fun CatalogChips(
     state: CatalogUiState,
     onSelect: (String?) -> Unit,
     onNewFolder: () -> Unit,
+    onFolderLongPress: (Folder) -> Unit,
 ) {
     Row(
         modifier =
@@ -145,6 +193,11 @@ private fun CatalogChips(
             FilterChip(
                 selected = state.selectedFolderId == folder.id,
                 onClick = { onSelect(folder.id) },
+                modifier =
+                    Modifier.combinedClickable(
+                        onClick = { onSelect(folder.id) },
+                        onLongClick = { onFolderLongPress(folder) },
+                    ),
                 label = { Text(folder.name) },
             )
         }
@@ -227,7 +280,11 @@ private fun TciCatalogItem(onOpen: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CatalogTopBar(onOpenSettings: () -> Unit) {
+private fun CatalogTopBar(
+    onOpenSettings: () -> Unit,
+    onOpenFolderSettings: () -> Unit = {},
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(stringResource(R.string.catalog_title)) },
         actions = {
@@ -236,6 +293,26 @@ private fun CatalogTopBar(onOpenSettings: () -> Unit) {
                     imageVector = Icons.Filled.Settings,
                     contentDescription = stringResource(R.string.settings),
                 )
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.folder_settings),
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.folder_settings)) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenFolderSettings()
+                        },
+                    )
+                }
             }
         },
     )
@@ -284,64 +361,52 @@ private fun AddDrugToFolderItem(onClick: () -> Unit) {
 }
 
 @Composable
-private fun FolderDialog(
-    folders: List<Folder>,
+private fun CreateFolderDialog(
+    existingNames: List<String>,
     onCreate: (String) -> Unit,
-    onDelete: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
-    var pendingDelete by remember { mutableStateOf<Folder?>(null) }
     val trimmed = name.trim()
+    val reserved = trimmed.lowercase() in Folder.RESERVED_NAMES
+    val duplicate = trimmed.isNotEmpty() && !reserved && existingNames.any { it.equals(trimmed, ignoreCase = true) }
+    val tooLong = trimmed.length > Folder.MAX_NAME_LENGTH
+    val canCreate = trimmed.isNotEmpty() && !duplicate && !reserved && !tooLong
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.folders_manage_title)) },
+        title = { Text(stringResource(R.string.new_folder)) },
         text = {
-            Column {
-                FolderNameField(
-                    name = name,
-                    onNameChange = { name = it },
-                    existingNames = folders.map { it.name },
-                    onCreate = {
-                        onCreate(trimmed)
-                        name = ""
-                    },
-                )
-                if (folders.isNotEmpty()) {
-                    FolderManageList(folders = folders, onDeleteClick = { pendingDelete = it })
-                }
-            }
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.folder_name)) },
+                isError = duplicate || tooLong || reserved,
+                supportingText = {
+                    when {
+                        reserved -> Text(stringResource(R.string.folder_reserved))
+                        duplicate -> Text(stringResource(R.string.folder_exists))
+                        tooLong -> Text(stringResource(R.string.folder_name_too_long))
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.done)) }
-        },
-    )
-
-    DeleteFolderConfirm(
-        folder = pendingDelete,
-        onConfirm = {
-            pendingDelete?.let { onDelete(it.id) }
-            pendingDelete = null
-        },
-        onDismiss = { pendingDelete = null },
-    )
-}
-
-@Composable
-private fun FolderManageList(
-    folders: List<Folder>,
-    onDeleteClick: (Folder) -> Unit,
-) {
-    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-    folders.forEach { folder ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(folder.name, modifier = Modifier.weight(1f))
-            TextButton(onClick = { onDeleteClick(folder) }) {
-                Text(stringResource(R.string.delete))
+            TextButton(
+                onClick = { onCreate(trimmed) },
+                enabled = canCreate,
+            ) {
+                Text(stringResource(R.string.create))
             }
-        }
-    }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable

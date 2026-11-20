@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
  * и звуковым/вибрационным сигналом в момент коррекции.
  */
 private const val TICK_INTERVAL_MS = 1_000L
+private const val STOP_ACTION_REQUEST = 3
 private const val SDK_CHANNEL = 26
 private const val SDK_SPECIAL_USE = 34
 private const val SECONDS_PER_MINUTE = 60
@@ -123,6 +124,7 @@ class TciSessionService : Service() {
         val openApp =
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(MainActivity.EXTRA_OPEN_TCI, true)
             }
         val pending =
             PendingIntent.getActivity(
@@ -160,6 +162,11 @@ class TciSessionService : Service() {
                 )
             }
         }
+        builder.addAction(
+            R.drawable.ic_tci_notification,
+            getString(R.string.tci_notif_action_stop),
+            actionPending(TciNotificationActions.ACTION_STOP, STOP_ACTION_REQUEST),
+        )
         return builder.build()
     }
 

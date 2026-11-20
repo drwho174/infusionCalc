@@ -34,6 +34,11 @@
     <string name="folder_all">Все</string>
     <string name="new_folder">Новая папка</string>
     <string name="folders_manage_title">Папки</string>
+    <string name="folder_settings">Настройки папок</string>
+    <string name="folders_empty">Папок пока нет</string>
+    <string name="exit_title">Выйти из приложения?</string>
+    <string name="exit_confirm">Выйти</string>
+    <string name="tci_notif_action_stop">Стоп</string>
     <string name="folder_name">Название папки</string>
     <string name="create">Создать</string>
     <string name="folder_exists">Папка с таким названием уже есть</string>
@@ -246,6 +251,8 @@
     <string name="edit">Изменить</string>
     <string name="add_short">Добавить</string>
 </resources>
+
+
 
 
 

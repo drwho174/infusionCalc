@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onRoot
 import com.drwho174.infusioncalc.data.seed.CatalogSeed
 import com.drwho174.infusioncalc.data.settings.SettingsRepository
 import com.drwho174.infusioncalc.domain.WeightStore
+import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.notif.NoopTciNotifier
 import com.drwho174.infusioncalc.testutil.FakeDrugRepository
 import com.drwho174.infusioncalc.testutil.FakeFolderRepository
@@ -14,6 +15,7 @@ import com.drwho174.infusioncalc.ui.about.AboutScreen
 import com.drwho174.infusioncalc.ui.theme.InfusionCalcTheme
 import com.drwho174.infusioncalc.ui.viewmodel.AppViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.CalculatorViewModel
+import com.drwho174.infusioncalc.ui.viewmodel.FolderSettingsViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.WeightViewModel
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -186,6 +188,25 @@ class ScreensRoborazziTest {
         }
         waitFor("О программе")
         capture("about_ru.png")
+    }
+
+    @Test
+    fun folderSettingsScreen() {
+        val repository =
+            FakeFolderRepository(
+                listOf(
+                    Folder(id = "1", name = "Инфузии"),
+                    Folder(id = "2", name = "Антибиотики"),
+                ),
+            )
+        val viewModel = FolderSettingsViewModel(repository)
+        composeRule.setContent {
+            InfusionCalcTheme {
+                FolderSettingsScreen(viewModel = viewModel, onBack = {})
+            }
+        }
+        waitFor("Folder settings")
+        capture("folder_settings.png")
     }
 
     private fun waitFor(text: String) {

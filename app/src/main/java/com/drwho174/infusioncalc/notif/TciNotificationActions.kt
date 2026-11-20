@@ -2,6 +2,7 @@ package com.drwho174.infusioncalc.notif
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.drwho174.infusioncalc.data.session.DataStoreTciSessionStore
 import com.drwho174.infusioncalc.tci.SimStep
@@ -23,6 +24,7 @@ import java.math.BigDecimal
 object TciNotificationActions {
     const val ACTION_PAUSE = "com.drwho174.infusioncalc.action.TCI_PAUSE"
     const val ACTION_CONFIRM = "com.drwho174.infusioncalc.action.TCI_CONFIRM"
+    const val ACTION_STOP = "com.drwho174.infusioncalc.action.TCI_STOP"
 
     private const val PAUSE_HORIZON_SECONDS = 4 * 3600
     private val ZERO_STATE = TciState(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
@@ -33,6 +35,10 @@ object TciNotificationActions {
         action: String,
     ) {
         mutex.withLock {
+            if (action == ACTION_STOP) {
+                stop(context)
+                return
+            }
             val model = TciNotificationBus.model ?: return
             when (action) {
                 ACTION_PAUSE -> pause(context, model)
@@ -79,6 +85,16 @@ object TciNotificationActions {
             )
         val curve = scheduled?.let { mergeCurve(model.curve, it, model.planStartSeconds) } ?: model.curve
         commit(context, model.copy(session = session, curve = curve))
+    }
+
+    private suspend fun stop(context: Context) {
+        TciNotificationBus.model = null
+        TciNotificationBus.revision++
+        runCatching { DataStoreTciSessionStore(context.applicationContext).clear() }
+        runCatching { context.stopService(Intent(context, TciSessionService::class.java)) }
+        runCatching {
+            NotificationManagerCompat.from(context).cancel(TciSessionService.NOTIFICATION_ID)
+        }
     }
 
     private suspend fun commit(

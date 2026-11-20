@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -22,6 +23,7 @@ import com.drwho174.infusioncalc.ui.navigation.CalculatorKey
 import com.drwho174.infusioncalc.ui.navigation.CatalogKey
 import com.drwho174.infusioncalc.ui.navigation.DisclaimerKey
 import com.drwho174.infusioncalc.ui.navigation.EditorKey
+import com.drwho174.infusioncalc.ui.navigation.FolderSettingsKey
 import com.drwho174.infusioncalc.ui.navigation.SettingsKey
 import com.drwho174.infusioncalc.ui.navigation.TciKey
 import com.drwho174.infusioncalc.ui.navigation.TciModelsKey
@@ -31,6 +33,7 @@ import com.drwho174.infusioncalc.ui.screens.CalculatorScreen
 import com.drwho174.infusioncalc.ui.screens.CatalogScreen
 import com.drwho174.infusioncalc.ui.screens.DisclaimerScreen
 import com.drwho174.infusioncalc.ui.screens.EditorScreen
+import com.drwho174.infusioncalc.ui.screens.FolderSettingsScreen
 import com.drwho174.infusioncalc.ui.screens.SettingsScreen
 import com.drwho174.infusioncalc.ui.screens.TciModelsScreen
 import com.drwho174.infusioncalc.ui.screens.TciScreen
@@ -54,12 +57,28 @@ private val screenTransition: AnimatedContentTransitionScope<Scene<NavKey>>.() -
 }
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun AppNav(
     disclaimerAccepted: Boolean,
     onAcceptDisclaimer: () -> Unit,
+    openTci: Boolean = false,
+    onOpenTciConsumed: () -> Unit = {},
 ) {
-    val startKey: NavKey = if (disclaimerAccepted) WeightKey else DisclaimerKey
+    val startKey: NavKey =
+        when {
+            openTci -> CatalogKey
+            disclaimerAccepted -> WeightKey
+            else -> DisclaimerKey
+        }
     val backStack = rememberNavBackStack(navigationConfig, startKey)
+
+    LaunchedEffect(openTci) {
+        if (openTci) {
+            if (backStack.none { it is CatalogKey }) backStack.add(CatalogKey)
+            if (backStack.lastOrNull() !is TciKey) backStack.add(TciKey)
+            onOpenTciConsumed()
+        }
+    }
 
     NavDisplay(
         backStack = backStack,
@@ -94,6 +113,7 @@ fun AppNav(
                         onOpenTci = { backStack.add(TciKey) },
                         onAddDrug = { backStack.add(EditorKey()) },
                         onOpenSettings = { backStack.add(SettingsKey) },
+                        onOpenFolderSettings = { backStack.add(FolderSettingsKey) },
                     )
                 }
                 entry<CalculatorKey> { key ->
@@ -137,6 +157,12 @@ fun AppNav(
                         viewModel = koinViewModel(),
                         onBack = { backStack.removeLastOrNull() },
                         onOpenAbout = { backStack.add(AboutKey) },
+                    )
+                }
+                entry<FolderSettingsKey> {
+                    FolderSettingsScreen(
+                        viewModel = koinViewModel(),
+                        onBack = { backStack.removeLastOrNull() },
                     )
                 }
                 entry<AboutKey> {

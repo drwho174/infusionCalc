@@ -22,6 +22,7 @@ class NavigationKeysTest {
                 EditorKey("norepinephrine"),
                 SettingsKey,
                 AboutKey,
+                FolderSettingsKey,
                 TciKey,
                 TciModelsKey,
             )

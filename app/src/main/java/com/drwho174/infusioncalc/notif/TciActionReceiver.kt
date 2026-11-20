@@ -16,7 +16,8 @@ class TciActionReceiver : BroadcastReceiver() {
     ) {
         val action = intent.action ?: return
         if (action != TciNotificationActions.ACTION_PAUSE &&
-            action != TciNotificationActions.ACTION_CONFIRM
+            action != TciNotificationActions.ACTION_CONFIRM &&
+            action != TciNotificationActions.ACTION_STOP
         ) {
             return
         }
