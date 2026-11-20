@@ -36,6 +36,7 @@
     <string name="folder_all">All</string>
     <string name="new_folder">New folder</string>
     <string name="folder_settings">Folder settings</string>
+    <string name="rename_folder">Rename folder</string>
     <string name="folders_empty">No folders yet</string>
     <string name="exit_title">Exit the app?</string>
     <string name="exit_confirm">Exit</string>
@@ -249,9 +250,11 @@
     <string name="tci_notif_action_confirm">I have set it</string>
     <string name="tci_models_title">TCI models</string>
     <string name="tci_models_action">Model reference</string>
-    <string name="edit">Edit</string>
     <string name="add_short">Add</string>
 </resources>
+
+
+
 
 
 

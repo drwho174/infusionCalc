@@ -8,6 +8,7 @@ import androidx.room3.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+@Suppress("TooManyFunctions")
 abstract class FolderDao {
     @Query("SELECT * FROM folders ORDER BY name COLLATE NOCASE")
     abstract fun observeFolders(): Flow<List<FolderEntity>>
@@ -17,6 +18,19 @@ abstract class FolderDao {
 
     @Query("SELECT COUNT(*) FROM folders WHERE nameLower = :nameLower")
     abstract suspend fun countByName(nameLower: String): Int
+
+    @Query("SELECT COUNT(*) FROM folders WHERE nameLower = :nameLower AND id != :id")
+    abstract suspend fun countByNameExcept(
+        nameLower: String,
+        id: String,
+    ): Int
+
+    @Query("UPDATE folders SET name = :name, nameLower = :nameLower WHERE id = :id")
+    abstract suspend fun renameFolder(
+        id: String,
+        name: String,
+        nameLower: String,
+    )
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertFolder(folder: FolderEntity)

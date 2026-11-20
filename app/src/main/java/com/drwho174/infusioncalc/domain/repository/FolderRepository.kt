@@ -14,6 +14,11 @@ interface FolderRepository {
     /** Создаёт папку; null — пустое/слишком длинное/повторяющееся имя. */
     suspend fun create(name: String): Folder?
 
+    suspend fun rename(
+        id: String,
+        name: String,
+    ): Boolean
+
     suspend fun delete(id: String)
 
     suspend fun setDrugFolders(

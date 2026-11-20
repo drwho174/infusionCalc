@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
@@ -193,23 +196,31 @@ fun EditorScreen(
             state.presets.forEach { preset ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = preset.displayLabel().replace(" = ", "\n= "),
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = preset.displayLabel(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     if (preset.mode == ConcentrationMode.MASS_VOLUME) {
-                        TextButton(
+                        IconButton(
                             onClick = {
                                 editTarget = preset
                                 dialogOpen = true
                             },
                         ) {
-                            Text(stringResource(R.string.edit))
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.edit_concentration),
+                            )
                         }
                     }
                     if (state.presets.size > 1) {
-                        TextButton(onClick = { viewModel.deletePreset(preset.id) }) {
-                            Text(stringResource(R.string.delete))
+                        IconButton(onClick = { viewModel.deletePreset(preset.id) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.delete),
+                            )
                         }
                     }
                 }

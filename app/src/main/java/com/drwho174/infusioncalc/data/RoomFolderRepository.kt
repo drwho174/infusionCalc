@@ -46,6 +46,20 @@ class RoomFolderRepository(
             folder
         }
 
+    override suspend fun rename(
+        id: String,
+        name: String,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty() || trimmed.length > Folder.MAX_NAME_LENGTH) return@withContext false
+            val normalized = trimmed.lowercase()
+            if (normalized in Folder.RESERVED_NAMES) return@withContext false
+            if (dao.countByNameExcept(normalized, id) > 0) return@withContext false
+            dao.renameFolder(id, trimmed, normalized)
+            true
+        }
+
     override suspend fun delete(id: String) =
         withContext(Dispatchers.IO) {
             dao.deleteFolder(id)

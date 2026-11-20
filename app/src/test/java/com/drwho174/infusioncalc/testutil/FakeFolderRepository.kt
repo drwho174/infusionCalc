@@ -32,6 +32,21 @@ class FakeFolderRepository(
         return folder
     }
 
+    override suspend fun rename(
+        id: String,
+        name: String,
+    ): Boolean {
+        val trimmed = name.trim()
+        val valid =
+            trimmed.isNotEmpty() &&
+                trimmed.lowercase() !in Folder.RESERVED_NAMES &&
+                trimmed.length <= Folder.MAX_NAME_LENGTH &&
+                folders.value.none { it.id != id && it.name.equals(trimmed, ignoreCase = true) }
+        if (!valid) return false
+        folders.value = folders.value.map { if (it.id == id) it.copy(name = trimmed) else it }
+        return true
+    }
+
     override suspend fun delete(id: String) {
         folders.value = folders.value.filterNot { it.id == id }
         memberships.value = memberships.value.mapValues { (_, ids) -> ids - id }

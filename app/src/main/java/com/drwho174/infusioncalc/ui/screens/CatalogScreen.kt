@@ -56,6 +56,7 @@ import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Drug
 import com.drwho174.infusioncalc.domain.model.Folder
 import com.drwho174.infusioncalc.ui.components.AddDrugsToFolderDialog
+import com.drwho174.infusioncalc.ui.components.FolderEditDialog
 import com.drwho174.infusioncalc.ui.display
 import com.drwho174.infusioncalc.ui.isEnglishUi
 import com.drwho174.infusioncalc.ui.viewmodel.CatalogUiState
@@ -78,6 +79,7 @@ fun CatalogScreen(
     var showNewFolderDialog by remember { mutableStateOf(false) }
     var showAddDrugsDialog by remember { mutableStateOf(false) }
     var pendingDeleteFolder by remember { mutableStateOf<Folder?>(null) }
+    var editingFolder by remember { mutableStateOf<Folder?>(null) }
     var showExitDialog by remember { mutableStateOf(false) }
 
     BackHandler { showExitDialog = true }
@@ -105,7 +107,7 @@ fun CatalogScreen(
                 state = state,
                 onSelect = viewModel::onFolderSelected,
                 onNewFolder = { showNewFolderDialog = true },
-                onFolderLongPress = { pendingDeleteFolder = it },
+                onFolderLongPress = { editingFolder = it },
             )
             CatalogBody(
                 state = state,
@@ -125,6 +127,23 @@ fun CatalogScreen(
                 showNewFolderDialog = false
             },
             onDismiss = { showNewFolderDialog = false },
+        )
+    }
+
+    val folderToEdit = editingFolder
+    if (folderToEdit != null) {
+        FolderEditDialog(
+            folder = folderToEdit,
+            existingNames = state.folders.map { it.name },
+            onRename = { name ->
+                viewModel.onRenameFolder(folderToEdit.id, name)
+                editingFolder = null
+            },
+            onDelete = {
+                editingFolder = null
+                pendingDeleteFolder = folderToEdit
+            },
+            onDismiss = { editingFolder = null },
         )
     }
 

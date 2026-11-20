@@ -33,6 +33,32 @@ class CatalogViewModelTest {
     }
 
     @Test
+    fun `renames and deletes a folder`() =
+        runTest(dispatcher) {
+            val folderRepository = FakeFolderRepository(listOf(Folder(id = "f1", name = "Old")))
+            val viewModel = CatalogViewModel(FakeDrugRepository(), folderRepository)
+            val job = launch { viewModel.state.collect {} }
+            advanceUntilIdle()
+
+            viewModel.onRenameFolder("f1", "New")
+            advanceUntilIdle()
+            assertEquals(
+                "New",
+                viewModel.state.value.folders
+                    .single()
+                    .name,
+            )
+
+            viewModel.onDeleteFolder("f1")
+            advanceUntilIdle()
+            assertTrue(
+                viewModel.state.value.folders
+                    .isEmpty(),
+            )
+            job.cancel()
+        }
+
+    @Test
     fun `filters drugs by folder`() =
         runTest(dispatcher) {
             val repository =

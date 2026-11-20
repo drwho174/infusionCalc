@@ -95,6 +95,13 @@ class CatalogViewModel(
         }
     }
 
+    fun onRenameFolder(
+        folderId: String,
+        name: String,
+    ) {
+        viewModelScope.launch { folderRepository.rename(folderId, name) }
+    }
+
     fun onDeleteFolder(folderId: String) {
         viewModelScope.launch {
             folderRepository.delete(folderId)

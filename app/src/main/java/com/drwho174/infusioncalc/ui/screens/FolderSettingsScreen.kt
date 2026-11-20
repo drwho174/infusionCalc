@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Folder
+import com.drwho174.infusioncalc.ui.components.FolderEditDialog
 import com.drwho174.infusioncalc.ui.viewmodel.FolderSettingsViewModel
 
 /** Настройки папок: список и удаление с подтверждением. */
@@ -42,6 +45,7 @@ fun FolderSettingsScreen(
 ) {
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<Folder?>(null) }
+    var editingFolder by remember { mutableStateOf<Folder?>(null) }
 
     Scaffold(
         topBar = {
@@ -86,12 +90,38 @@ fun FolderSettingsScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = { pendingDelete = folder }) {
-                        Text(stringResource(R.string.delete))
+                    IconButton(onClick = { editingFolder = folder }) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = stringResource(R.string.rename_folder),
+                        )
+                    }
+                    IconButton(onClick = { pendingDelete = folder }) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = stringResource(R.string.delete),
+                        )
                     }
                 }
             }
         }
+    }
+
+    val folderToEdit = editingFolder
+    if (folderToEdit != null) {
+        FolderEditDialog(
+            folder = folderToEdit,
+            existingNames = folders.map { it.name },
+            onRename = { name ->
+                viewModel.rename(folderToEdit.id, name)
+                editingFolder = null
+            },
+            onDelete = {
+                editingFolder = null
+                pendingDelete = folderToEdit
+            },
+            onDismiss = { editingFolder = null },
+        )
     }
 
     val folder = pendingDelete

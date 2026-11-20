@@ -20,6 +20,13 @@ class FolderSettingsViewModel(
             .observeFolders()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 
+    fun rename(
+        folderId: String,
+        name: String,
+    ) {
+        viewModelScope.launch { repository.rename(folderId, name) }
+    }
+
     fun delete(folderId: String) {
         viewModelScope.launch { repository.delete(folderId) }
     }
