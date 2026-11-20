@@ -206,10 +206,12 @@ private fun CatalogChips(
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         FilterChip(
             selected = state.selectedFolderId == null,
             onClick = { onSelect(null) },
+            modifier = Modifier.height(32.dp),
             label = { Text(stringResource(R.string.folder_all)) },
         )
         state.folders.forEach { folder ->
@@ -222,6 +224,7 @@ private fun CatalogChips(
         }
         AssistChip(
             onClick = onNewFolder,
+            modifier = Modifier.height(32.dp),
             label = { Text(stringResource(R.string.new_folder)) },
             leadingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = null) },
         )
