@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -29,6 +31,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -328,17 +331,22 @@ private fun CalculatorContent(
             title = { Text(stringResource(R.string.delete_drug_title)) },
             text = { Text(stringResource(R.string.delete_drug_body)) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showDeleteConfirm = false
                         viewModel.delete(onDeleted = onBack)
                     },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
                 ) {
                     Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
+                OutlinedButton(onClick = { showDeleteConfirm = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -351,7 +359,7 @@ private fun CalculatorContent(
             title = { Text(stringResource(R.string.delete_builtin_title)) },
             text = { Text(stringResource(R.string.delete_builtin_body)) },
             confirmButton = {
-                TextButton(onClick = { showBuiltInDeleteError = false }) {
+                Button(onClick = { showBuiltInDeleteError = false }) {
                     Text(stringResource(R.string.ok))
                 }
             },
@@ -413,10 +421,10 @@ private fun FolderPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onDone(local) }) { Text(stringResource(R.string.done)) }
+            Button(onClick = { onDone(local) }) { Text(stringResource(R.string.done)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

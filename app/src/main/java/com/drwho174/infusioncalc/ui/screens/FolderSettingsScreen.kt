@@ -12,13 +12,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -131,17 +133,22 @@ fun FolderSettingsScreen(
             title = { Text(stringResource(R.string.delete_folder_title)) },
             text = { Text(stringResource(R.string.delete_folder_body)) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         viewModel.delete(folder.id)
                         pendingDelete = null
                     },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
                 ) {
                     Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
+                OutlinedButton(onClick = { pendingDelete = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },

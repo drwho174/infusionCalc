@@ -1,19 +1,26 @@
 package com.drwho174.infusioncalc.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Folder
 
@@ -22,6 +29,7 @@ import com.drwho174.infusioncalc.domain.model.Folder
  * Используется и в настройках папок, и по долгому нажатию на чипс.
  */
 @Composable
+@Suppress("LongMethod")
 fun FolderEditDialog(
     folder: Folder,
     existingNames: List<String>,
@@ -57,25 +65,35 @@ fun FolderEditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextButton(onClick = onDelete) {
-                    Text(
-                        text = stringResource(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { if (valid) onRename(trimmed) },
-                enabled = valid,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+                OutlinedButton(
+                    onClick = onDelete,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                    Button(
+                        onClick = { if (valid) onRename(trimmed) },
+                        enabled = valid,
+                    ) {
+                        Text(stringResource(R.string.save))
+                    }
+                }
             }
         },
     )

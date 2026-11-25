@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -57,7 +58,7 @@ internal fun AddDrugsToFolderDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { onConfirm(selected.filterValues { it }.keys) },
                 enabled = selected.any { it.value },
             ) {
@@ -65,7 +66,7 @@ internal fun AddDrugsToFolderDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

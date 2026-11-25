@@ -2,9 +2,9 @@ package com.drwho174.infusioncalc.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -41,7 +41,11 @@ fun FolderNameField(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        TextButton(onClick = onCreate, enabled = canCreate) {
+        Button(
+            onClick = onCreate,
+            enabled = canCreate,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text(stringResource(R.string.create))
         }
     }

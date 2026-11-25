@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -461,15 +462,20 @@ private fun SessionSection(
             title = { Text(stringResource(R.string.tci_session_stop_title)) },
             text = { Text(stringResource(R.string.tci_session_stop_text)) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         onStop()
                         showStop = false
                     },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
                 ) { Text(stringResource(R.string.tci_session_stop)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStop = false }) { Text(stringResource(R.string.cancel)) }
+                OutlinedButton(onClick = { showStop = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -629,13 +635,13 @@ private fun ManualRateDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { onConfirm(text) },
                 enabled = text.toBigDecimalOrNull()?.signum() == 1,
             ) { Text(stringResource(R.string.tci_continue)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -659,7 +665,7 @@ private fun TciDisclaimerDialog(onDismiss: (neverShow: Boolean) -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { onDismiss(neverShow) }) { Text(stringResource(R.string.ok)) }
+            Button(onClick = { onDismiss(neverShow) }) { Text(stringResource(R.string.ok)) }
         },
     )
 }
@@ -728,19 +734,22 @@ private fun TciSettingsDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                TextButton(onClick = onShowDisclaimer) {
+                OutlinedButton(
+                    onClick = onShowDisclaimer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.tci_disclaimer_show))
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { onSave(bolus, stepValue!!, leadValue!!) },
                 enabled = bolusValid && stepValid && leadValid,
             ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
@@ -1366,10 +1375,10 @@ private fun ConfirmResetDialog(
         title = { Text(stringResource(R.string.tci_confirm_reset_title)) },
         text = { Text(stringResource(R.string.tci_confirm_reset, subject)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.tci_continue)) }
+            Button(onClick = onConfirm) { Text(stringResource(R.string.tci_continue)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,7 +96,7 @@ fun ConcentrationPresetDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     val amount = amountValue
                     val volume = volumeValue
@@ -110,7 +110,7 @@ fun ConcentrationPresetDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

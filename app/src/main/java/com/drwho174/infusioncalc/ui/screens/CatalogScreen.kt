@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -35,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -170,7 +173,7 @@ fun CatalogScreen(
             onDismissRequest = { showExitDialog = false },
             title = { Text(stringResource(R.string.exit_title)) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showExitDialog = false
                         (context as? Activity)?.finish()
@@ -180,7 +183,7 @@ fun CatalogScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) {
+                OutlinedButton(onClick = { showExitDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -453,7 +456,7 @@ private fun CreateFolderDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = { onCreate(trimmed) },
                 enabled = canCreate,
             ) {
@@ -461,7 +464,7 @@ private fun CreateFolderDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
         },
@@ -480,10 +483,19 @@ private fun DeleteFolderConfirm(
         title = { Text(stringResource(R.string.delete_folder_title)) },
         text = { Text(stringResource(R.string.delete_folder_body)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) }
+            Button(
+                onClick = onConfirm,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+            ) {
+                Text(stringResource(R.string.delete))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
