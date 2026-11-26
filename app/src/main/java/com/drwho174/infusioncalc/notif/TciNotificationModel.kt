@@ -7,6 +7,7 @@ import com.drwho174.infusioncalc.tci.TciState
 import com.drwho174.infusioncalc.ui.viewmodel.TciForm
 import com.drwho174.infusioncalc.ui.viewmodel.TciSession
 import com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus
+import com.drwho174.infusioncalc.ui.viewmodel.lastStepAt
 import java.math.BigDecimal
 
 /**
@@ -59,7 +60,7 @@ fun evaluateTciNotification(
             session.manual && model.manualCurve != null -> model.manualCurve
             else -> model.curve
         }
-    val point = curve.lastOrNull { it.timeSeconds <= elapsed } ?: curve.lastOrNull()
+    val point = curve.lastStepAt(elapsed) ?: curve.lastOrNull()
     val concentration = if (model.mode == TargetMode.PLASMA) point?.cpMcgPerMl else point?.ceMcgPerMl
 
     val current = model.plan.steps.lastOrNull { it.offsetSeconds <= elapsed }

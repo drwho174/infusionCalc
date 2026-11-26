@@ -247,11 +247,14 @@
     <string name="tci_notif_paused">Пауза — скорость 0 мл/ч</string>
     <string name="tci_notif_steady">Установившаяся скорость %1$s мл/ч</string>
     <string name="tci_notif_action_pause">Пауза</string>
+    <string name="tci_notif_action_resume">Продолжить</string>
     <string name="tci_notif_action_confirm">Выставил(а)</string>
     <string name="tci_models_title">Модели TCI</string>
     <string name="tci_models_action">Справка по моделям</string>
     <string name="add_short">Добавить</string>
 </resources>
+
+
 
 
 

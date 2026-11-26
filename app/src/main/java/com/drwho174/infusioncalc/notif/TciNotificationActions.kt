@@ -7,10 +7,13 @@ import androidx.core.content.ContextCompat
 import com.drwho174.infusioncalc.data.session.DataStoreTciSessionStore
 import com.drwho174.infusioncalc.tci.SimStep
 import com.drwho174.infusioncalc.tci.TciEngine
+import com.drwho174.infusioncalc.tci.TciSimRequest
 import com.drwho174.infusioncalc.tci.TciState
 import com.drwho174.infusioncalc.ui.viewmodel.TciForm
 import com.drwho174.infusioncalc.ui.viewmodel.TciSchedule
 import com.drwho174.infusioncalc.ui.viewmodel.TciSession
+import com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus
+import com.drwho174.infusioncalc.ui.viewmodel.lastStepAt
 import com.drwho174.infusioncalc.ui.viewmodel.parametersOf
 import com.drwho174.infusioncalc.ui.viewmodel.toSnapshot
 import kotlinx.coroutines.sync.Mutex
@@ -23,10 +26,14 @@ import java.math.BigDecimal
  */
 object TciNotificationActions {
     const val ACTION_PAUSE = "com.drwho174.infusioncalc.action.TCI_PAUSE"
+    const val ACTION_RESUME = "com.drwho174.infusioncalc.action.TCI_RESUME"
     const val ACTION_CONFIRM = "com.drwho174.infusioncalc.action.TCI_CONFIRM"
     const val ACTION_STOP = "com.drwho174.infusioncalc.action.TCI_STOP"
 
     private const val PAUSE_HORIZON_SECONDS = 4 * 3600
+    private const val MIN_STEP_MINUTES = 1
+    private const val MAX_STEP_MINUTES = 60
+    private const val SECONDS_PER_MINUTE = 60
     private val ZERO_STATE = TciState(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)
     private val mutex = Mutex()
 
@@ -54,10 +61,80 @@ object TciNotificationActions {
         if (model.session.status == com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus.PAUSED) return
         val now = System.currentTimeMillis()
         val elapsed = model.session.elapsedSeconds(now)
-        val state = model.curve.lastOrNull { it.timeSeconds <= elapsed }?.state ?: return
+        val state = model.curve.lastStepAt(elapsed)?.state ?: return
         val paused = model.session.pause(now)
         val pauseCurve = simulateHold(model.form, state, elapsed)
         commit(context, model.copy(session = paused, pauseCurve = pauseCurve))
+    }
+
+    /**
+     * Возобновление из уведомления. Сначала берём фактическое состояние в момент
+     * паузы, затем повторяем логику экрана: для ручного режима держим скорость,
+     * для автоматического — пересчитываем программу от текущей концентрации.
+     */
+    @Suppress("ReturnCount")
+    private suspend fun resume(
+        context: Context,
+        model: TciNotificationModel,
+    ) {
+        if (model.session.status != TciSessionStatus.PAUSED) return
+        val now = System.currentTimeMillis()
+        val elapsed = model.session.elapsedSeconds(now)
+        val state = model.pauseCurve?.lastStepAt(elapsed)?.state ?: return
+        val resumed = model.session.resume()
+        val base = model.copy(session = resumed, pauseCurve = null)
+        val rate = resumed.manualRateMlPerHour
+        if (resumed.manual && rate != null) {
+            val params = parametersOf(model.form)
+            val manualCurve =
+                params?.let {
+                    TciEngine.simulateConstantRate(
+                        params = it,
+                        fromState = state,
+                        fromOffsetSeconds = elapsed,
+                        rateMlPerHour = rate,
+                        concentrationMgPerMl = model.form.concentrationMgPerMl,
+                        horizonSeconds = PAUSE_HORIZON_SECONDS,
+                    )
+                }
+            commit(context, base.copy(manualCurve = manualCurve))
+            return
+        }
+
+        val params = parametersOf(model.form)
+        val request = requestOf(model.form)
+        if (params == null || request == null) {
+            commit(context, base)
+            return
+        }
+        val plan =
+            runCatching {
+                TciEngine.pumpPlanFromState(
+                    request = request,
+                    params = params,
+                    state = state,
+                    startSeconds = elapsed,
+                    stepSeconds =
+                        model.form.tableStepMinutes
+                            .coerceIn(MIN_STEP_MINUTES, MAX_STEP_MINUTES) * SECONDS_PER_MINUTE,
+                )
+            }.getOrNull()
+        if (plan == null) {
+            commit(context, base)
+            return
+        }
+        val curve = mergeCurve(model.curve, plan.predicted, elapsed)
+        commit(
+            context,
+            base.copy(
+                session = resumed.clearManual().copy(confirmedAt = emptyMap()),
+                plan = plan,
+                curve = curve,
+                manualCurve = null,
+                planStartSeconds = elapsed,
+                planStartState = state,
+            ),
+        )
     }
 
     @Suppress("ReturnCount")
@@ -111,6 +188,25 @@ object TciNotificationActions {
         runCatching {
             ContextCompat.startForegroundService(context, Intent(context, TciSessionService::class.java))
         }
+    }
+
+    @Suppress("ReturnCount")
+    private fun requestOf(form: TciForm): TciSimRequest? {
+        val weight = form.weightText.toBigDecimalOrNull() ?: return null
+        val target = form.targetText.toBigDecimalOrNull() ?: return null
+        val bolusRate = form.bolusRateText.toBigDecimalOrNull() ?: return null
+        return TciSimRequest(
+            model = form.model,
+            targetMcgPerMl = target,
+            mode = form.mode,
+            concentrationMgPerMl = form.concentrationMgPerMl,
+            bolusRateMlPerHour = bolusRate,
+            weightKg = weight,
+            heightCm = form.heightText.toBigDecimalOrNull(),
+            ageYears = form.ageText.trim().toIntOrNull(),
+            sex = form.sex,
+            horizonSeconds = TciForm.HORIZON_SECONDS,
+        )
     }
 
     private fun simulateHold(

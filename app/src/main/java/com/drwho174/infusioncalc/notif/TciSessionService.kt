@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
  */
 private const val TICK_INTERVAL_MS = 1_000L
 private const val STOP_ACTION_REQUEST = 3
+private const val RESUME_ACTION_REQUEST = 4
 private const val SDK_CHANNEL = 26
 private const val SDK_SPECIAL_USE = 34
 private const val SECONDS_PER_MINUTE = 60
@@ -148,7 +149,13 @@ class TciSessionService : Service() {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
-        if (!content.paused) {
+        if (content.paused) {
+            builder.addAction(
+                R.mipmap.ic_launcher_foreground,
+                getString(R.string.tci_notif_action_resume),
+                actionPending(TciNotificationActions.ACTION_RESUME, RESUME_ACTION_REQUEST),
+            )
+        } else {
             builder.addAction(
                 R.mipmap.ic_launcher_foreground,
                 getString(R.string.tci_notif_action_pause),

@@ -2,7 +2,9 @@ package com.drwho174.infusioncalc.ui.screens
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import com.drwho174.infusioncalc.data.seed.CatalogSeed
 import com.drwho174.infusioncalc.data.settings.SettingsRepository
 import com.drwho174.infusioncalc.domain.WeightStore
@@ -108,6 +110,32 @@ class ScreensRoborazziTest {
         }
         waitFor("Propofol")
         capture("tci.png")
+    }
+
+    @Test
+    fun tciLiveScreen() {
+        var now = 0L
+        val weight = WeightStore().apply { set(BigDecimal("70")) }
+        val viewModel =
+            TciViewModel(
+                store = FakeTciSessionStore(disclaimerHidden = true),
+                weightStore = weight,
+                notifier = NoopTciNotifier,
+                clock = { now },
+            )
+        viewModel.onTargetChange("4")
+        viewModel.start()
+        now = 120_000L
+        viewModel.refresh()
+        composeRule.setContent {
+            InfusionCalcTheme {
+                TciScreen(viewModel = viewModel, onBack = {}, onOpenHelp = {})
+            }
+        }
+        waitFor("Propofol")
+        composeRule.onNodeWithText("Cp (solid)").performScrollTo()
+        composeRule.waitForIdle()
+        capture("tci_live.png")
     }
 
     @Test

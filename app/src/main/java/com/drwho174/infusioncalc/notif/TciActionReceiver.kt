@@ -8,19 +8,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-/** Кнопки уведомления: пауза и подтверждение уставки. */
+/** Кнопки уведомления: пауза, продолжение и подтверждение уставки. */
 class TciActionReceiver : BroadcastReceiver() {
     override fun onReceive(
         context: Context,
         intent: Intent,
     ) {
         val action = intent.action ?: return
-        if (action != TciNotificationActions.ACTION_PAUSE &&
-            action != TciNotificationActions.ACTION_CONFIRM &&
-            action != TciNotificationActions.ACTION_STOP
-        ) {
-            return
-        }
+        if (action !in NOTIFICATION_ACTIONS) return
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
@@ -31,3 +26,11 @@ class TciActionReceiver : BroadcastReceiver() {
         }
     }
 }
+
+private val NOTIFICATION_ACTIONS =
+    setOf(
+        TciNotificationActions.ACTION_PAUSE,
+        TciNotificationActions.ACTION_RESUME,
+        TciNotificationActions.ACTION_CONFIRM,
+        TciNotificationActions.ACTION_STOP,
+    )

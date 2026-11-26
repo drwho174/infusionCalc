@@ -88,7 +88,7 @@ internal fun buildLive(
         } else {
             baseCurve
         }
-    val point = curve.lastOrNull { it.timeSeconds <= elapsed } ?: curve.lastOrNull()
+    val point = curve.lastStepAt(elapsed) ?: curve.lastOrNull()
     val state = point?.state
 
     val advice =
@@ -203,4 +203,22 @@ internal fun parametersOf(form: TciForm): com.drwho174.infusioncalc.tci.TciParam
         is TciResult.Success -> result.value
         is TciResult.Failure -> null
     }
+}
+
+/** Последний шаг с временем <= [seconds]; кривая отсортирована по времени. */
+internal fun List<SimStep>.lastStepAt(seconds: Int): SimStep? {
+    var low = 0
+    var high = size - 1
+    var found: SimStep? = null
+    while (low <= high) {
+        val mid = (low + high) ushr 1
+        val step = this[mid]
+        if (step.timeSeconds <= seconds) {
+            found = step
+            low = mid + 1
+        } else {
+            high = mid - 1
+        }
+    }
+    return found
 }

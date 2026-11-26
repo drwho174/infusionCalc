@@ -27,7 +27,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Locale.setDefault(resources.configuration.locales[0])
-        openTci = intent?.getBooleanExtra(EXTRA_OPEN_TCI, false) == true
+        // Extra из уведомления обрабатываем только при холодном старте.
+        // При пересоздании Activity (смена языка, поворот) старый intent
+        // не должен снова открывать TCI поверх текущего экрана.
+        openTci =
+            savedInstanceState == null &&
+            intent?.getBooleanExtra(EXTRA_OPEN_TCI, false) == true
         enableEdgeToEdge()
         setContent {
             val appViewModel: AppViewModel = koinViewModel()
@@ -48,7 +53,12 @@ class MainActivity : ComponentActivity() {
                         disclaimerAccepted = current.disclaimerAccepted,
                         onAcceptDisclaimer = appViewModel::acceptDisclaimer,
                         openTci = openTci,
-                        onOpenTciConsumed = { openTci = false },
+                        onOpenTciConsumed = {
+                            openTci = false
+                            // Иначе после пересоздания Activity (например, смены языка)
+                            // старый intent снова откроет TCI поверх настроек.
+                            intent?.removeExtra(EXTRA_OPEN_TCI)
+                        },
                     )
                 }
             }

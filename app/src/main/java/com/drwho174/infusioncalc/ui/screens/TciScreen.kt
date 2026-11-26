@@ -71,6 +71,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -96,6 +97,7 @@ import com.drwho174.infusioncalc.ui.viewmodel.TciSessionStatus
 import com.drwho174.infusioncalc.ui.viewmodel.TciUiState
 import com.drwho174.infusioncalc.ui.viewmodel.TciViewModel
 import com.drwho174.infusioncalc.ui.viewmodel.TciWarning
+import com.drwho174.infusioncalc.ui.viewmodel.lastStepAt
 import com.drwho174.infusioncalc.ui.viewmodel.targetPhaseRange
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -123,6 +125,7 @@ private const val CHART_DASH_ON = 12f
 private const val CHART_DASH_OFF = 8f
 private const val CURSOR_DASH_ON = 6f
 private const val CURSOR_DASH_OFF = 6f
+private const val CHART_MIN_POINT_GAP_PX = 1f
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1087,19 +1090,19 @@ private fun PlotSection(
             )
             Spacer(Modifier.height(12.dp))
         }
-        Row(verticalAlignment = Alignment.Bottom) {
-            BigValue(
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ConcentrationValue(
+                prefix = "Cp ",
                 value = live?.cpDisplay ?: "—",
                 unit = stringResource(R.string.tci_mcg_ml),
-                style = MaterialTheme.typography.headlineSmall,
-                prefix = "Cp ",
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.weight(1f))
-            BigValue(
+            ConcentrationValue(
+                prefix = "Ce ",
                 value = live?.ceDisplay ?: "—",
                 unit = stringResource(R.string.tci_mcg_ml),
-                style = MaterialTheme.typography.headlineSmall,
-                prefix = "Ce ",
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.End,
             )
         }
         if (live != null) {
@@ -1179,17 +1182,21 @@ private fun CpCeChart(
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val maxC =
-        steps
-            .maxOf { maxOf(it.cpMcgPerMl, it.ceMcgPerMl) }
-            .toFloat()
-            .coerceAtLeast(1f)
+        remember(steps) {
+            steps
+                .maxOf { maxOf(it.cpMcgPerMl, it.ceMcgPerMl) }
+                .toFloat()
+                .coerceAtLeast(1f)
+        }
     val maxT =
-        maxOf(
-            horizonSeconds,
-            elapsedSeconds?.let {
-                ((it + CHART_ROUND_SECONDS - 1) / CHART_ROUND_SECONDS) * CHART_ROUND_SECONDS
-            } ?: horizonSeconds,
-        )
+        remember(horizonSeconds, elapsedSeconds) {
+            maxOf(
+                horizonSeconds,
+                elapsedSeconds?.let {
+                    ((it + CHART_ROUND_SECONDS - 1) / CHART_ROUND_SECONDS) * CHART_ROUND_SECONDS
+                } ?: horizonSeconds,
+            )
+        }
 
     val chartDescription =
         stringResource(R.string.tci_chart_description) +
@@ -1243,13 +1250,22 @@ private fun CpCeChart(
         val cpPath = Path()
         val cePath = Path()
         var lastStep: SimStep? = null
-        steps.filter { it.timeSeconds <= maxT }.forEachIndexed { index, step ->
-            val px = x(step.timeSeconds)
-            val py = y(step.cpMcgPerMl)
-            if (index == 0) cpPath.moveTo(px, py) else cpPath.lineTo(px, py)
-            val ey = y(step.ceMcgPerMl)
-            if (index == 0) cePath.moveTo(px, ey) else cePath.lineTo(px, ey)
+        var lastPx = Float.NEGATIVE_INFINITY
+        var started = false
+        for (step in steps) {
+            if (step.timeSeconds > maxT) break
             lastStep = step
+            val px = x(step.timeSeconds)
+            // Прореживаем точки до одного пикселя: кривая визуально не меняется,
+            // а Path не строится из десятков тысяч сегментов.
+            if (!started || px - lastPx >= CHART_MIN_POINT_GAP_PX) {
+                val py = y(step.cpMcgPerMl)
+                if (!started) cpPath.moveTo(px, py) else cpPath.lineTo(px, py)
+                val ey = y(step.ceMcgPerMl)
+                if (!started) cePath.moveTo(px, ey) else cePath.lineTo(px, ey)
+                started = true
+                lastPx = px
+            }
         }
         // Продлеваем полку до правого края, если сессия длиннее прогноза.
         lastStep?.let { last ->
@@ -1278,7 +1294,7 @@ private fun CpCeChart(
                 strokeWidth = 1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(CURSOR_DASH_ON, CURSOR_DASH_OFF)),
             )
-            val point = steps.lastOrNull { it.timeSeconds <= elapsedSeconds } ?: steps.firstOrNull()
+            val point = steps.lastStepAt(elapsedSeconds) ?: steps.firstOrNull()
             point?.let {
                 drawCircle(color = cpColor, radius = 4.dp.toPx(), center = Offset(cx, y(it.cpMcgPerMl)))
                 drawCircle(color = ceColor, radius = 4.dp.toPx(), center = Offset(cx, y(it.ceMcgPerMl)))
@@ -1412,6 +1428,34 @@ private fun TciChipRow(content: @Composable () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         content()
+    }
+}
+
+@Composable
+private fun ConcentrationValue(
+    prefix: String,
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = horizontalAlignment,
+    ) {
+        Text(
+            text = prefix + value,
+            style = MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings = "tnum"),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = unit,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
     }
 }
 
