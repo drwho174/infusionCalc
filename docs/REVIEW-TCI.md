@@ -573,3 +573,29 @@
 
 - Roborazzi-тест диалога нестабилен в Robolectric (вечный idle из-за текстового поля), поэтому диалоги проверены на эмуляторе; скриншоты приложены.
 
+---
+
+## 25. R8 для release-сборки (версия 3.1, задача t25)
+
+| Поле | Значение |
+|---|---|
+| Версия | 3.1 |
+| Дата | 2026-11-26 |
+| Объект | Включение R8, keep-правила и проверка release |
+| Вердикт | **pass** |
+
+### 25.1 Что включено
+
+- В `app/build.gradle.kts` для `release` заданы `isMinifyEnabled = true`, `isShrinkResources = true` и `proguard-android-optimize.txt` + `proguard-rules.pro`.
+- В `app/proguard-rules.pro` добавлены keep-правила для kotlinx.serialization, Room (`androidx.room3`), Koin и ключей Navigation 3.
+- Для Markwon HTML добавлен точечный `-dontwarn` на опциональный класс CommonMark strikethrough.
+
+### 25.2 Результат
+
+- Размер release APK уменьшился с **15.37 МБ** до **7.11 МБ**.
+- Появился `app/build/outputs/mapping/release/mapping.txt`.
+- Release-вариант установлен на эмулятор Pixel_10: приложение запускается, каталог читает Room, экран TCI открывается (serialization/навигация).
+
+### 25.3 Ограничение
+
+- Release без `signingConfig` собирается unsigned; для локальной проверки копия подписана debug-ключом. Для публикации нужен upload-keystore.
