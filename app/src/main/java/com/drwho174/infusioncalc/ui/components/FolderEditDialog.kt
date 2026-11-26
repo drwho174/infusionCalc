@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.drwho174.infusioncalc.R
 import com.drwho174.infusioncalc.domain.model.Folder
@@ -31,6 +33,7 @@ import com.drwho174.infusioncalc.domain.model.Folder
  */
 @Composable
 @Suppress("LongMethod")
+@Preview
 fun FolderEditDialog(
     folder: Folder,
     existingNames: List<String>,
@@ -73,16 +76,21 @@ fun FolderEditDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.End,
             ) {
-                OutlinedButton(
-                    onClick = onDelete,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                    colors =
-                        ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Text(stringResource(R.string.delete))
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.wrapContentWidth(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                    ) {
+                        Text(stringResource(R.string.delete))
+                    }
                 }
                 Row(
                     modifier = Modifier.padding(top = 8.dp),
